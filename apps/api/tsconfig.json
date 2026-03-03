@@ -10,7 +10,8 @@
     { "path": "../../packages/shared" },
     { "path": "../../packages/contracts" },
     { "path": "../../packages/domain" },
-    { "path": "../../packages/application" }
+    { "path": "../../packages/application" },
+    { "path": "../../packages/infra-postgres" }
   ],
   "include": ["src/**/*.ts"]
 }

@@ -73,7 +73,41 @@ jobs:
 
       - name: Provision application database role
         run: |
-          node -e "const { Client } = require('pg'); (async () => { const client = new Client({ connectionString: process.env.ADMIN_DATABASE_URL }); await client.connect(); await client.query(\"DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'grantledger_app') THEN CREATE ROLE grantledger_app LOGIN PASSWORD 'grantledger_app' NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION; END IF; END $$;\"); await client.query(\"GRANT CONNECT ON DATABASE grantledger_rls TO grantledger_app;\"); await client.query(\"GRANT USAGE, CREATE ON SCHEMA public TO grantledger_app;\"); await client.end(); })().catch((error) => { console.error(error); process.exit(1); });"
+          node <<'NODE'
+          const { Client } = require("pg");
+
+          async function main() {
+            const client = new Client({
+              connectionString: process.env.ADMIN_DATABASE_URL,
+            });
+            await client.connect();
+
+            const roleName = "grantledger_app";
+            const exists = await client.query(
+              "SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = $1",
+              [roleName],
+            );
+
+            if (exists.rowCount === 0) {
+              await client.query(
+                "CREATE ROLE grantledger_app LOGIN PASSWORD 'grantledger_app' NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION",
+              );
+            }
+
+            await client.query(
+              "GRANT CONNECT ON DATABASE grantledger_rls TO grantledger_app",
+            );
+            await client.query(
+              "GRANT USAGE, CREATE ON SCHEMA public TO grantledger_app",
+            );
+            await client.end();
+          }
+
+          main().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
 
       - name: Apply migrations
         run: npm run db:migrate
