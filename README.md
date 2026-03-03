@@ -30,7 +30,7 @@ It aims to give product and engineering teams confidence that billing behavior i
 
 ## At a Glance
 
-> Current status on `main`: architecture hardening stream delivered through `ARCH-018`; active focus is `ARCH-021` (CI/CD quality + security gates).
+> Current status on `main`: architecture hardening stream delivered through `ARCH-021`; next planned focus is `ARCH-022` (performance, resilience, and readiness finalization).
 
 - domain rules stay pure and deterministic
 - use cases orchestrate idempotency, retries, and audit flow
