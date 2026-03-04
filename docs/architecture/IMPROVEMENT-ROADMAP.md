@@ -28,7 +28,7 @@ Canonical references:
 - ARCH-021 completed (`#90`, merge `b007968`)
 - ARCH-019 completed (`#95`, merge `e56fc1d`)
 - ARCH-020 completed (`#77`, branch `chore/arch-020-observability-baseline`)
-- ARCH-022 in progress (`#79`, branch `chore/arch-022-readiness-finalization`)
+- ARCH-022 completed (`#99`, merge `fb43b20`)
 
 ## Target Architecture Principles
 
@@ -40,10 +40,8 @@ Canonical references:
 
 ## Current Prioritized Sequence
 
-1. ARCH-022: performance, resilience, and readiness finalization (in progress)
-
-- Preserve ARCH-018/ARCH-019/ARCH-020/ARCH-021 baselines while finalizing readiness outcomes in ARCH-022.
-
+- ARCH stream hardening baseline completed through ARCH-022.
+- New architecture increments should open new ARCH issues from concrete risks.
 
 ## Delivery Strategy
 
@@ -79,8 +77,8 @@ Canonical references:
 - Idempotency orchestration is generic and reusable.
 - Governance docs stay synchronized with code and PR lifecycle.
 
-## Next execution focus: ARCH-022
+## Next execution focus: Architecture Backlog Refresh
 
-- Finalize performance, resilience, and production-readiness hardening.
-- Define SLI/SLO targets, alert thresholds, and runbook coverage for critical paths.
-- Keep ARCH-019 error metadata compatibility so telemetry and diagnostics remain stable.
+- Monitor current baselines (CI/security/OpenAPI/observability) for regressions.
+- Open a new ARCH issue only when a clear structural gap is identified.
+- Preserve error-model, schema-first, and runtime fail-fast guardrails.

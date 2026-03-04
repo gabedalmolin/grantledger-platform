@@ -178,13 +178,13 @@ Deliver structural improvements without blocking feature delivery.
   - Merge SHA: `b007968`
   - Notes: Added CI quality/security workflows, enforced OpenAPI drift checks, enabled Postgres integration gates, and aligned main branch protection with required checks.
 
-- [ ] ARCH-022 - Performance, resilience, and readiness finalization
-  - Status: IN_PROGRESS
+- [x] ARCH-022 - Performance, resilience, and readiness finalization
+  - Status: DONE
   - Issue: `#79`
   - Branch: `chore/arch-022-readiness-finalization`
-  - PR: `TBD`
-  - Merge SHA: `TBD`
-  - Notes: Started ARCH-022 to consolidate SLI/SLO targets, alert/runbook baseline, and production-readiness hardening.
+  - PR: `#99`
+  - Merge SHA: `fb43b20`
+  - Notes: Finalized readiness baseline with SLI/SLO targets, alert/runbook guidance, and API startup fail-fast runtime validation.
 
 ## ADR References
 
