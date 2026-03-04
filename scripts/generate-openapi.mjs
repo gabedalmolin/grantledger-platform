@@ -19,6 +19,103 @@ const outPath = path.resolve(
   "docs/openapi/openapi.json",
 );
 
+const CLIENT_ERROR_DESCRIPTIONS = {
+  "400": "Bad Request",
+  "401": "Unauthorized",
+  "403": "Forbidden",
+  "404": "Not Found",
+  "409": "Conflict",
+};
+
+const OPERATION_METADATA = {
+  "/v1/auth/subscriptions": {
+    post: {
+      summary: "Create subscription",
+      operationId: "createSubscription",
+      security: [{ bearerAuth: [] }],
+      clientErrors: ["400", "401", "409"],
+    },
+  },
+  "/v1/checkout/sessions": {
+    post: {
+      summary: "Start checkout session",
+      operationId: "startCheckoutSession",
+      security: [{ bearerAuth: [] }],
+      clientErrors: ["400", "401"],
+    },
+  },
+  "/v1/invoices/generation": {
+    post: {
+      summary: "Enqueue invoice generation",
+      operationId: "enqueueInvoiceGeneration",
+      security: [{ bearerAuth: [] }],
+      clientErrors: ["400", "401"],
+    },
+  },
+  "/v1/invoices/generation/status": {
+    post: {
+      summary: "Get invoice generation status",
+      operationId: "getInvoiceGenerationStatus",
+      security: [{ bearerAuth: [] }],
+      clientErrors: ["400", "401", "404"],
+    },
+  },
+  "/v1/webhooks/provider": {
+    post: {
+      summary: "Process payment provider webhook",
+      operationId: "processPaymentProviderWebhook",
+      security: [],
+      clientErrors: ["400", "401"],
+    },
+  },
+};
+
+function enrichForLint(doc) {
+  doc.info = {
+    ...doc.info,
+    license: doc.info?.license ?? {
+      name: "UNLICENSED",
+      identifier: "UNLICENSED",
+    },
+  };
+
+  doc.servers = doc.servers?.length
+    ? doc.servers
+    : [
+      { url: "https://api.grantledger.com", description: "Production" },
+    ];
+
+  doc.components = doc.components ?? {};
+  doc.components.securitySchemes = doc.components.securitySchemes ?? {};
+  doc.components.securitySchemes.bearerAuth =
+    doc.components.securitySchemes.bearerAuth ?? {
+      type: "http",
+      scheme: "bearer",
+      bearerFormat: "JWT",
+    };
+
+  for (const [path, methods] of Object.entries(OPERATION_METADATA)) {
+    const pathItem = doc.paths?.[path];
+    if (!pathItem) continue;
+
+    for (const [method, meta] of Object.entries(methods)) {
+      const op = pathItem[method];
+      if (!op) continue;
+
+      op.summary ??= meta.summary;
+      op.operationId ??= meta.operationId;
+      op.security ??= meta.security;
+      op.responses = op.responses ?? {};
+
+      for (const status of meta.clientErrors) {
+        op.responses[status] ??= {
+          description: CLIENT_ERROR_DESCRIPTIONS[status] ?? "Client Error",
+        };
+      }
+    }
+  }
+}
+
 const components = {
   CreateSubscriptionPayload: z.toJSONSchema(createSubscriptionPayloadSchema),
   CreateSubscriptionResponse: z.toJSONSchema(createSubscriptionResponseSchema),
@@ -168,6 +265,9 @@ const spec = {
   components: { schemas: components },
 };
 
+const document = spec;
+enrichForLint(document);
+
 fs.mkdirSync(path.dirname(outPath), { recursive: true });
-fs.writeFileSync(outPath, JSON.stringify(spec, null, 2) + "\n");
+fs.writeFileSync(outPath, JSON.stringify(document, null, 2) + "\n");
 console.log(`OpenAPI generated at ${outPath}`);

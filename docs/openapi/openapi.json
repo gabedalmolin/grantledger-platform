@@ -3,7 +3,11 @@
   "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
   "info": {
     "title": "GrantLedger API",
-    "version": "0.1.0"
+    "version": "0.1.0",
+    "license": {
+      "name": "UNLICENSED",
+      "identifier": "UNLICENSED"
+    }
   },
   "paths": {
     "/v1/auth/subscriptions": {
@@ -28,8 +32,24 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "409": {
+            "description": "Conflict"
           }
-        }
+        },
+        "summary": "Create subscription",
+        "operationId": "createSubscription",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/v1/checkout/sessions": {
@@ -54,8 +74,21 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
           }
-        }
+        },
+        "summary": "Start checkout session",
+        "operationId": "startCheckoutSession",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/v1/invoices/generation": {
@@ -80,8 +113,21 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
           }
-        }
+        },
+        "summary": "Enqueue invoice generation",
+        "operationId": "enqueueInvoiceGeneration",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/v1/invoices/generation/status": {
@@ -106,8 +152,24 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found"
           }
-        }
+        },
+        "summary": "Get invoice generation status",
+        "operationId": "getInvoiceGenerationStatus",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/v1/webhooks/provider": {
@@ -132,8 +194,17 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
           }
-        }
+        },
+        "summary": "Process payment provider webhook",
+        "operationId": "processPaymentProviderWebhook",
+        "security": []
       }
     }
   },
@@ -501,6 +572,19 @@
         ],
         "additionalProperties": false
       }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
     }
-  }
+  },
+  "servers": [
+    {
+      "url": "https://api.grantledger.com",
+      "description": "Production"
+    }
+  ]
 }

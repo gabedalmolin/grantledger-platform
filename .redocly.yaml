@@ -1,0 +1,17 @@
+apis:
+    grantledger@v1:
+        root:  ./docs/openapi/openapi.json
+
+extends:
+    - recommended
+    
+rules:
+  no-empty-servers: error
+  operation-summary: error
+  operation-operationId: error
+  operation-operationId-unique: error
+  operation-2xx-response: error
+  operation-4xx-response: error
+  security-defined: error
+  info-license: error
+  no-unused-components: error
