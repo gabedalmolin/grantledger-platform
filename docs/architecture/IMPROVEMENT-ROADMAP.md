@@ -26,6 +26,8 @@ Canonical references:
 - ARCH-012 completed (`#65`, merge `ea6db9a`)
 - ARCH-018 completed (`#89`, `#92`, `#93`; merges `4c384d0`, `3faf3f0`, `9da76c7`)
 - ARCH-021 completed (`#90`, merge `b007968`)
+- ARCH-019 in progress (`#76`, branch `chore/arch-019-error-model-v2-i18n-envelope`)
+- ARCH-020 planned (`#77`)
 - ARCH-022 planned (`#79`)
 
 ## Target Architecture Principles
@@ -38,11 +40,11 @@ Canonical references:
 
 ## Current Prioritized Sequence
 
-1. ARCH-018: schema-first boundaries and OpenAPI generation (completed)
-2. ARCH-021: CI/CD quality and security gates (completed)
+1. ARCH-019: error model v2 and i18n-ready envelope (in progress)
+2. ARCH-020: full operational observability baseline (planned)
 3. ARCH-022: performance, resilience, and readiness finalization (planned)
 
-- Preserve ARCH-018/ARCH-021 contract and delivery baselines while expanding operational readiness in ARCH-022.
+- Preserve ARCH-018/ARCH-021 contract and CI/security baselines while hardening runtime standards through ARCH-019/020 before final readiness in ARCH-022.
 
 ## Delivery Strategy
 
@@ -78,8 +80,8 @@ Canonical references:
 - Idempotency orchestration is generic and reusable.
 - Governance docs stay synchronized with code and PR lifecycle.
 
-## Next execution focus: ARCH-022
+## Next execution focus: ARCH-019
 
-- Finalize performance and resilience readiness checks on top of the new CI baseline.
-- Expand observability and operational readiness criteria for production confidence.
-- Keep CI/security gates stable while incrementally hardening runtime behavior.
+- Standardize Error v2 envelope across handlers and API error mapping.
+- Ensure i18n-ready response structure (stable error code + translation key + metadata).
+- Define clear compatibility rules to support ARCH-020 observability and ARCH-022 readiness baselines.
