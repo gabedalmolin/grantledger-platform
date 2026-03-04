@@ -154,13 +154,13 @@ Deliver structural improvements without blocking feature delivery.
   - Merge SHA: `4c384d0`
   - Notes: Hardened schema-first request boundaries, added OpenAPI generation/validation scripts, and versioned OpenAPI artifact checks. Follow-ups: `#92` migrated validation to Redocly and enriched generated OAS metadata; `#93` removed the legacy swagger-parser validator script.
 
-- [ ] ARCH-019 - Error model v2 and i18n-ready envelope
-  - Status: IN_PROGRESS
+- [x] ARCH-019 - Error model v2 and i18n-ready envelope
+  - Status: DONE
   - Issue: `#76`
   - Branch: `chore/arch-019-error-model-v2-i18n-envelope`
-  - PR: `TBD`
-  - Merge SHA: `TBD`
-  - Notes: Started ARCH-019 to standardize Error v2 envelope and i18n-ready keys across API boundaries.
+  - PR: `#95`
+  - Merge SHA: `e56fc1d`
+  - Notes: Introduced Error Model v2 with `messageKey`/`messageParams`, preserved backward compatibility (`message` + `code`), added structured validation details (`details.issues[]`), and expanded en-US error catalog for critical paths.
 
 - [x] ARCH-021 - CI/CD quality and security gates
   - Status: DONE
