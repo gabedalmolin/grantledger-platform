@@ -27,7 +27,7 @@ Canonical references:
 - ARCH-018 completed (`#89`, `#92`, `#93`; merges `4c384d0`, `3faf3f0`, `9da76c7`)
 - ARCH-021 completed (`#90`, merge `b007968`)
 - ARCH-019 completed (`#95`, merge `e56fc1d`)
-- ARCH-020 in progress (`#77`, branch `chore/arch-020-observability-baseline`)
+- ARCH-020 completed (`#77`, branch `chore/arch-020-observability-baseline`)
 - ARCH-022 planned (`#79`)
 
 ## Target Architecture Principles
@@ -79,8 +79,8 @@ Canonical references:
 - Idempotency orchestration is generic and reusable.
 - Governance docs stay synchronized with code and PR lifecycle.
 
-## Next execution focus: ARCH-020
+## Next execution focus: ARCH-022
 
-- Establish full operational observability baseline (logs, metrics, tracing, and core dashboards).
-- Define alerting and runbook expectations for critical failure modes.
-- Keep compatibility with ARCH-019 error metadata so telemetry can use stable error keys.
+- Finalize performance, resilience, and production-readiness hardening.
+- Define SLI/SLO targets, alert thresholds, and runbook coverage for critical paths.
+- Keep ARCH-019 error metadata compatibility so telemetry and diagnostics remain stable.
