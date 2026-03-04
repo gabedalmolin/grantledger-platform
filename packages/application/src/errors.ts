@@ -11,10 +11,22 @@ export type AppErrorCode =
   | "DOMAIN_CONFLICT"
   | "INTERNAL_ERROR";
 
+export type AppErrorParamValue =
+  | string
+  | number
+  | boolean
+  | null
+  | readonly AppErrorParamValue[]
+  | { readonly [key: string]: AppErrorParamValue };
+
+export type AppErrorParams = Readonly<Record<string, AppErrorParamValue>>;
+
 export interface AppErrorInput {
   message: string;
   code: AppErrorCode;
   httpStatus: number;
+  messageKey?: string;
+  messageParams?: AppErrorParams;
   details?: unknown;
   cause?: unknown;
 }
@@ -22,6 +34,8 @@ export interface AppErrorInput {
 export class AppError extends Error {
   readonly code: AppErrorCode;
   readonly httpStatus: number;
+  readonly messageKey?: string;
+  readonly messageParams?: AppErrorParams;
   readonly details?: unknown;
 
   constructor(input: AppErrorInput) {
@@ -29,6 +43,9 @@ export class AppError extends Error {
     this.name = new.target.name;
     this.code = input.code;
     this.httpStatus = input.httpStatus;
+    if (input.messageKey !== undefined) this.messageKey = input.messageKey;
+    if (input.messageParams !== undefined)
+      this.messageParams = input.messageParams;
     if (input.details !== undefined) this.details = input.details;
     if (input.cause !== undefined) {
       (this as Error & { cause?: unknown }).cause = input.cause;
@@ -42,6 +59,7 @@ export class AuthenticationError extends AppError {
       message,
       code: "AUTHENTICATION_REQUIRED",
       httpStatus: 401,
+      messageKey: "error.auth.authentication_required",
       ...(details !== undefined ? { details } : {}),
     });
   }
@@ -56,6 +74,7 @@ export class ForbiddenError extends AppError {
       message,
       code: "FORBIDDEN",
       httpStatus: 403,
+      messageKey: "error.auth.forbidden",
       ...(details !== undefined ? { details } : {}),
     });
   }
@@ -67,6 +86,7 @@ export class BadRequestError extends AppError {
       message,
       code: "BAD_REQUEST",
       httpStatus: 400,
+      messageKey: "error.bad_request",
       ...(details !== undefined ? { details } : {}),
     });
   }
@@ -78,6 +98,7 @@ export class ValidationError extends AppError {
       message,
       code: "VALIDATION_ERROR",
       httpStatus: 400,
+      messageKey: "error.validation_failed",
       ...(details !== undefined ? { details } : {}),
     });
   }
@@ -89,6 +110,7 @@ export class NotFoundError extends AppError {
       message,
       code: "NOT_FOUND",
       httpStatus: 404,
+      messageKey: "error.not_found",
       ...(details !== undefined ? { details } : {}),
     });
   }
@@ -100,6 +122,7 @@ export class ConflictError extends AppError {
       message,
       code: "CONFLICT",
       httpStatus: 409,
+      messageKey: "error.conflict",
       ...(details !== undefined ? { details } : {}),
     });
   }
@@ -111,6 +134,7 @@ export class InternalError extends AppError {
       message,
       code: "INTERNAL_ERROR",
       httpStatus: 500,
+      messageKey: "error.internal",
       ...(details !== undefined ? { details } : {}),
     });
   }

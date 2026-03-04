@@ -1,18 +1,27 @@
 import { BadRequestError } from "@grantledger/application";
 import { type ZodTypeAny } from "zod";
 
-function formatZodError(
-  issues: { path: PropertyKey[]; message: string }[],
-): string {
-  return issues
-    .map((issue) => {
-      const field =
-        issue.path.length > 0
-          ? issue.path.map((part) => String(part)).join(".")
-          : "payload";
-      return `${field}: ${issue.message}`;
-    })
-    .join("; ");
+interface ValidationIssueDetail {
+  path: string;
+  message: string;
+  code: string;
+}
+
+function mapValidationIssues(
+  issues: { path: PropertyKey[]; message: string; code: string }[],
+): ValidationIssueDetail[] {
+  return issues.map((issue) => ({
+    path:
+      issue.path.length > 0
+        ? issue.path.map((part) => String(part)).join(".")
+        : "payload",
+    message: issue.message,
+    code: issue.code,
+  }));
+}
+
+function formatValidationSummary(issues: ValidationIssueDetail[]): string {
+  return issues.map((issue) => `${issue.path}: ${issue.message}`).join("; ");
 }
 
 export function parseOrThrowBadRequest<TSchema extends ZodTypeAny>(
@@ -23,8 +32,12 @@ export function parseOrThrowBadRequest<TSchema extends ZodTypeAny>(
   const parsed = schema.safeParse(input);
 
   if (!parsed.success) {
-    const details = formatZodError(parsed.error.issues);
-    throw new BadRequestError(`${message} - ${details}`);
+    const issues = mapValidationIssues(parsed.error.issues);
+    const summary = formatValidationSummary(issues);
+    throw new BadRequestError(`${message} - ${summary}`, {
+      type: "validation",
+      issues,
+    });
   }
 
   return parsed.data;

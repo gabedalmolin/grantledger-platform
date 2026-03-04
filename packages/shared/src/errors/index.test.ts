@@ -18,6 +18,8 @@ describe("shared error helpers", () => {
     const body = buildStandardErrorBody({
       message: "Conflict",
       code: "CONFLICT",
+      messageKey: "error.conflict",
+      messageParams: { resource: "subscription" },
       details: { field: "idempotency-key" },
       traceId: "trace-1",
     });
@@ -25,6 +27,8 @@ describe("shared error helpers", () => {
     expect(body).toEqual({
       message: "Conflict",
       code: "CONFLICT",
+      messageKey: "error.conflict",
+      messageParams: { resource: "subscription" },
       details: { field: "idempotency-key" },
       traceId: "trace-1",
     });

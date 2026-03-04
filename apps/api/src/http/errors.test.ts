@@ -12,6 +12,7 @@ describe("toApiErrorResponse", () => {
     expect(response.body).toMatchObject({
       message: "Invalid payload",
       code: "BAD_REQUEST",
+      messageKey: "error.bad_request",
     });
   });
 
@@ -23,6 +24,7 @@ describe("toApiErrorResponse", () => {
     expect(response.body).toMatchObject({
       message: "Invalid transition",
       code: "DOMAIN_CONFLICT",
+      messageKey: "error.domain_conflict",
     });
   });
 
@@ -33,6 +35,7 @@ describe("toApiErrorResponse", () => {
     expect(response.body).toMatchObject({
       message: "Unexpected error",
       code: "INTERNAL_ERROR",
+      messageKey: "error.unexpected",
     });
   });
 

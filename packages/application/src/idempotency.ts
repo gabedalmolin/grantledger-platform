@@ -12,6 +12,7 @@ export class MissingIdempotencyKeyError extends AppError {
       message,
       code: "MISSING_IDEMPOTENCY_KEY",
       httpStatus: 400,
+      messageKey: "error.idempotency.missing_key",
     });
   }
 }
@@ -22,6 +23,7 @@ export class IdempotencyConflictError extends AppError {
       message,
       code: "IDEMPOTENCY_CONFLICT",
       httpStatus: 409,
+      messageKey: "error.idempotency.conflict",
     });
   }
 }
@@ -32,6 +34,7 @@ export class IdempotencyInProgressError extends AppError {
       message,
       code: "IDEMPOTENCY_IN_PROGRESS",
       httpStatus: 409,
+      messageKey: "error.idempotency.in_progress",
     });
   }
 }
@@ -120,6 +123,7 @@ function ensureReplayResponse<TResponse>(
       message: "Stored idempotency replay record has no response payload",
       code: "INTERNAL_ERROR",
       httpStatus: 500,
+      messageKey: "error.internal",
     });
   }
   return record.response;
