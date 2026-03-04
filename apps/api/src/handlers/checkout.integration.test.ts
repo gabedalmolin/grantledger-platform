@@ -31,6 +31,22 @@ describe("checkout handler integration", () => {
     );
 
     expect(response.status).toBe(400);
+    expect(response.body).toMatchObject({
+      code: "BAD_REQUEST",
+      messageKey: "error.bad_request",
+      details: { type: "validation" },
+    });
+
+    const issues = (
+      response.body as { details?: { issues?: Array<{ path: string }> } }
+    ).details?.issues;
+
+    expect(issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ path: "planId" }),
+        expect.objectContaining({ path: "billingPeriod" }),
+      ]),
+    );
   });
 
   it("returns 201 when payload is valid for authorized membership", async () => {
