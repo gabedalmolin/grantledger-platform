@@ -1,4 +1,5 @@
 import { createApiCompositionRoot } from "./bootstrap/composition-root.js";
+import { validateApiRuntimeConfig } from "./bootstrap/runtime-config.js";
 
 export { createApiCompositionRoot } from "./bootstrap/composition-root.js";
 export * from "./handlers/auth.js";
@@ -9,6 +10,8 @@ export * from "./http/errors.js";
 export * from "./http/headers.js";
 export * from "./http/types.js";
 export * from "./http/validation.js";
+
+validateApiRuntimeConfig();
 
 const apiRoot = createApiCompositionRoot();
 
