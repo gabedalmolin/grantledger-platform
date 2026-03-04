@@ -30,7 +30,7 @@ It aims to give product and engineering teams confidence that billing behavior i
 
 ## At a Glance
 
-> Current status on `main`: architecture hardening stream delivered through `ARCH-021`; next planned focus is `ARCH-022` (performance, resilience, and readiness finalization).
+> Current status on `main`: architecture hardening stream is currently executing `ARCH-022` (performance, resilience, and readiness finalization).
 
 - domain rules stay pure and deterministic
 - use cases orchestrate idempotency, retries, and audit flow
@@ -203,7 +203,7 @@ Architecture changes follow an issue-driven stream (`ARCH-*`) with mandatory doc
 - The repository still prioritizes deterministic in-memory adapters in key paths; a deeper durable production profile can continue in future streams.
 - Operational semantics (retry, backoff, dead-letter, replay controls, observer-safe notifications) are now modeled and documented across ARCH-010/011/012.
 - Contract drift risk was reduced by schema-first invoice boundaries, but broader schema-first consolidation can continue incrementally.
-- Next architecture step (`ARCH-013`) should build on this baseline while preserving the public contracts stabilized in ARCH-009+.
+- Next architecture step (`ARCH-022`) should finalize readiness targets while preserving public contracts and operational safeguards already stabilized.
 
 ## Project Links
 
