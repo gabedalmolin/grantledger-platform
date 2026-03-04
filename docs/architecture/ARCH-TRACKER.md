@@ -152,7 +152,7 @@ Deliver structural improvements without blocking feature delivery.
   - Branch: `chore/arch-018-schema-boundaries`
   - PR: `#89`
   - Merge SHA: `4c384d0`
-  - Notes: Hardened schema-first request boundaries, added OpenAPI generation/validation scripts, and versioned OpenAPI artifact checks.
+  - Notes: Hardened schema-first request boundaries, added OpenAPI generation/validation scripts, and versioned OpenAPI artifact checks. Follow-ups: `#92` migrated validation to Redocly and enriched generated OAS metadata; `#93` removed the legacy swagger-parser validator script.
 
 - [x] ARCH-021 - CI/CD quality and security gates
   - Status: DONE

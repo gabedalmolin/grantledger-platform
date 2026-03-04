@@ -24,7 +24,7 @@ Canonical references:
 - ARCH-010 completed (`#56`, merge `487c7bf`)
 - ARCH-011 completed (`#59`, merge `e58acbb`)
 - ARCH-012 completed (`#65`, merge `ea6db9a`)
-- ARCH-018 completed (`#89`, merge `4c384d0`)
+- ARCH-018 completed (`#89`, `#92`, `#93`; merges `4c384d0`, `3faf3f0`, `9da76c7`)
 - ARCH-021 completed (`#90`, merge `b007968`)
 - ARCH-022 planned (`#79`)
 
