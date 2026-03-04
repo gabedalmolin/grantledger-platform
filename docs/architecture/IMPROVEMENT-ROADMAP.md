@@ -25,7 +25,8 @@ Canonical references:
 - ARCH-011 completed (`#59`, merge `e58acbb`)
 - ARCH-012 completed (`#65`, merge `ea6db9a`)
 - ARCH-018 completed (`#89`, merge `4c384d0`)
-- ARCH-021 in progress (`#78`)
+- ARCH-021 completed (`#90`, merge `b007968`)
+- ARCH-022 planned (`#79`)
 
 ## Target Architecture Principles
 
@@ -38,9 +39,10 @@ Canonical references:
 ## Current Prioritized Sequence
 
 1. ARCH-018: schema-first boundaries and OpenAPI generation (completed)
-2. ARCH-021: CI/CD quality and security gates (in progress)
+2. ARCH-021: CI/CD quality and security gates (completed)
+3. ARCH-022: performance, resilience, and readiness finalization (planned)
 
-- Preserve API/application contracts delivered in ARCH-018 while introducing stricter delivery gates.
+- Preserve ARCH-018/ARCH-021 contract and delivery baselines while expanding operational readiness in ARCH-022.
 
 ## Delivery Strategy
 
@@ -76,9 +78,8 @@ Canonical references:
 - Idempotency orchestration is generic and reusable.
 - Governance docs stay synchronized with code and PR lifecycle.
 
-## Next execution focus: ARCH-021
+## Next execution focus: ARCH-022
 
-- Enforce lint/typecheck/build/OpenAPI/test gates in GitHub Actions.
-- Add Postgres-backed integration test execution in CI.
-- Add security scanning baseline (dependency audit + CodeQL).
-- Align branch protection policy with CI checks.
+- Finalize performance and resilience readiness checks on top of the new CI baseline.
+- Expand observability and operational readiness criteria for production confidence.
+- Keep CI/security gates stable while incrementally hardening runtime behavior.

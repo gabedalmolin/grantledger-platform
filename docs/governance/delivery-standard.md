@@ -18,8 +18,8 @@
 
 ## Branch Protection Baseline
 - Protect `main` and require CI checks:
-- `CI / Quality Gate`
-- `CI / Postgres Integration`
+- `Quality Gate`
+- `Postgres Integration`
 - Keep security checks visible and actionable; move to blocking after baseline stabilization.
 
 ## PR Quality

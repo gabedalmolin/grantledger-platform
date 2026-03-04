@@ -154,11 +154,13 @@ Deliver structural improvements without blocking feature delivery.
   - Merge SHA: `4c384d0`
   - Notes: Hardened schema-first request boundaries, added OpenAPI generation/validation scripts, and versioned OpenAPI artifact checks.
 
-- [ ] ARCH-021 - CI/CD quality and security gates
-  - Status: IN_PROGRESS
+- [x] ARCH-021 - CI/CD quality and security gates
+  - Status: DONE
   - Issue: `#78`
   - Branch: `chore/arch-021-ci-security-gates`
-  - Notes: Add GitHub Actions CI + security workflows, enforce OpenAPI drift checks, run Postgres integration in CI, and align branch protection.
+  - PR: `#90`
+  - Merge SHA: `b007968`
+  - Notes: Added CI quality/security workflows, enforced OpenAPI drift checks, enabled Postgres integration gates, and aligned main branch protection with required checks.
 
 ## ADR References
 
@@ -176,11 +178,8 @@ Deliver structural improvements without blocking feature delivery.
 
 ## Quality Gates (mandatory per PR)
 
-- [ ] `npm run typecheck`
-- [ ] `npm run build`
-- [ ] `npm run lint`
-- [ ] `npm run openapi:check`
-- [ ] `npm run test`
+- [ ] `npm run quality:gate`
+- [ ] `DATABASE_URL=postgresql://grantledger:grantledger@localhost:5432/grantledger RUN_PG_TESTS=1 npm run test:pg` (or CI evidence)
 - [ ] `Architectural scope respected (no mixed feature work)`
 
 ## Done Criteria for ARCH-000
