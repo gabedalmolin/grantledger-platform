@@ -159,6 +159,22 @@ npm ci
 npm run quality:gate
 ```
 
+### Standard delivery bootstrap (issue + project + PR metadata)
+
+Use the orchestrator script when opening or updating delivery PRs with governance metadata sync.
+
+```bash
+DATABASE_URL='postgresql://grantledger_app:grantledger_app@localhost:5432/grantledger_rls' \
+bash ./scripts/delivery-bootstrap.sh \
+  --issue-number <ISSUE_NUMBER> \
+  --issue-body /tmp/issue.md \
+  --pr-title "<PR_TITLE>" \
+  --pr-body /tmp/pr.md \
+  --branch <BRANCH_NAME>
+```
+
+Add `--skip-gates` only when quality checks were already executed in the same branch and commit.
+
 ### Postgres integration checks
 
 ```bash
