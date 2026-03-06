@@ -1,7 +1,7 @@
 # Architecture Health Check (Monthly)
 
 ## Purpose
-Keep architecture baselines healthy after ARCH-022 without unnecessary process overhead.
+Keep architecture baselines healthy after ARCH-023 without unnecessary process overhead.
 
 ## Cadence
 - Monthly review (or after major incident)

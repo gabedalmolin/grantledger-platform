@@ -30,7 +30,7 @@ It aims to give product and engineering teams confidence that billing behavior i
 
 ## At a Glance
 
-> Current status on `main`: architecture hardening baseline is completed through `ARCH-022`; next focus is backlog refresh based on concrete structural risks.
+> Current status on `main`: architecture hardening baseline is completed through `ARCH-023`; next focus is backlog refresh based on concrete structural risks.
 
 - domain rules stay pure and deterministic
 - use cases orchestrate idempotency, retries, and audit flow

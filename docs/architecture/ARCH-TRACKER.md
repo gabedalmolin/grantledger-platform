@@ -186,6 +186,14 @@ Deliver structural improvements without blocking feature delivery.
   - Merge SHA: `fb43b20`
   - Notes: Finalized readiness baseline with SLI/SLO targets, alert/runbook guidance, and API startup fail-fast runtime validation.
 
+- [x] ARCH-023 - Postgres persistence regression coverage hardening
+  - Status: DONE
+  - Issue: `#114`
+  - Branch: `feat/arch-023-pg-persistence-regression-tests`
+  - PR: `#115`
+  - Merge SHA: `e7495526b79c558cead94e05d052c8fb694f79a6`
+  - Notes: Added Postgres integration regression coverage for idempotency begin/replay/conflict/restart flows, invoice job lease/retry/dead-letter guard behavior, and tenant-scoped persistence safety. No ADR change required.
+
 ## ADR References
 
 - [x] ADR-005 - Domain vs Application boundary
