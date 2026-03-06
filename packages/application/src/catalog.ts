@@ -158,20 +158,3 @@ export async function assertVersionNotCriticalMutated(
 ): Promise<void> {
   assertPublishedVersionImmutable(current);
 }
-
-export interface PlanCatalogRepository {
-  createPlan(input: CreatePlanInput): Promise<Plan>;
-  getPlanById(planId: string): Promise<Plan | null>;
-  listPlans(): Promise<Plan[]>;
-  createPlanVersion(input: CreatePlanVersionInput): Promise<PlanVersion>;
-  getPlanVersion(
-    planId: string,
-    versionId: string,
-  ): Promise<PlanVersion | null>;
-  listPlanVersions(planId: string): Promise<PlanVersion[]>;
-  savePlanVersion(planVersion: PlanVersion): Promise<void>;
-}
-
-export interface CatalogAuditLogger {
-  log(event: CatalogAuditEvent): Promise<void>;
-}
