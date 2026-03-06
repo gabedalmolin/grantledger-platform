@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO="${REPO:-john-dalmolin/grantledger-platform}"
+REPO="${REPO:-gabe-dalmolin/grantledger-platform}"
 PROJECT_NUMBER="${PROJECT_NUMBER:-6}"
 PROJECT_OWNER="${PROJECT_OWNER:-john-dalmolin}"
 BASE_BRANCH="${BASE_BRANCH:-main}"
