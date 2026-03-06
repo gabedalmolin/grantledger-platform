@@ -41,10 +41,11 @@ import {
   type WebhookHandlers,
 } from "../handlers/webhook.js";
 import {
-  createInMemorySubscriptionUseCaseDeps,
   createSubscriptionHandlers,
   type SubscriptionHandlers,
 } from "../handlers/subscription.js";
+import { createInMemorySubscriptionUseCaseDeps } from "./subscription-deps.js";
+
 
 class FakePaymentProvider implements PaymentProvider {
   public readonly name = "fake" as const;

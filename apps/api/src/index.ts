@@ -10,6 +10,8 @@ export {
   type InvoiceHandlersDeps,
 } from "./handlers/invoice.js";
 export * from "./handlers/subscription.js";
+export { createInMemorySubscriptionUseCaseDeps } from "./bootstrap/subscription-deps.js";
+
 export * from "./http/errors.js";
 export * from "./http/headers.js";
 export * from "./http/types.js";
