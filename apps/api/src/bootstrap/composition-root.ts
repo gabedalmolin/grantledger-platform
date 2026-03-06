@@ -1,12 +1,19 @@
-import type {
-  PaymentProvider,
-  SubscriptionUseCaseDeps,
+import {
+  createInMemoryAsyncIdempotencyStore,
+  getSharedInvoiceUseCaseDeps,
+  type InvoiceUseCaseDeps,
+  type PaymentProvider,
+  type SubscriptionUseCaseDeps,
 } from "@grantledger/application";
 import {
+  createPostgresInvoiceUseCaseDeps,
   createPostgresPool,
   createPostgresSubscriptionUseCaseDeps,
+  createPostgresWebhookAuditStore,
+  createPostgresWebhookIdempotencyStore,
 } from "@grantledger/infra-postgres";
 import type {
+  CanonicalPaymentEvent,
   CreateCheckoutSessionInput,
   CreateCheckoutSessionResult,
 } from "@grantledger/contracts";
@@ -16,17 +23,28 @@ import {
   type Clock,
   type IdGenerator,
 } from "@grantledger/shared";
+import type { Pool } from "pg";
 
 import {
   createStartCheckoutHandler,
   type StartCheckoutHandler,
 } from "../handlers/checkout.js";
 import {
+  createInvoiceHandlers,
+  type InvoiceHandlers,
+} from "../handlers/invoice.js";
+import {
+  createWebhookHandlers,
+  StructuredLogCanonicalEventPublisher,
+  StructuredLogWebhookAuditStore,
+  type WebhookHandlerDeps,
+  type WebhookHandlers,
+} from "../handlers/webhook.js";
+import {
   createInMemorySubscriptionUseCaseDeps,
   createSubscriptionHandlers,
   type SubscriptionHandlers,
 } from "../handlers/subscription.js";
-import type { Pool } from "pg";
 
 class FakePaymentProvider implements PaymentProvider {
   public readonly name = "fake" as const;
@@ -34,7 +52,7 @@ class FakePaymentProvider implements PaymentProvider {
   constructor(
     private readonly idGenerator: IdGenerator,
     private readonly clock: Clock,
-  ) {}
+  ) { }
 
   createCheckoutSession(
     _input: CreateCheckoutSessionInput,
@@ -56,6 +74,11 @@ export interface ApiCompositionRootDeps {
   clock?: Clock;
   idGenerator?: IdGenerator;
   paymentProvider?: PaymentProvider;
+  invoiceHandlers?: InvoiceHandlers;
+  invoiceUseCases?: InvoiceUseCaseDeps;
+  invoiceUseCasesByTenant?: (tenantId: string) => InvoiceUseCaseDeps;
+  webhookHandlers?: WebhookHandlers;
+  webhookHandlerDeps?: WebhookHandlerDeps;
   subscriptionUseCases?: SubscriptionUseCaseDeps;
   subscriptionUseCasesByTenant?: (tenantId: string) => SubscriptionUseCaseDeps;
   persistenceDriver?: "memory" | "postgres";
@@ -64,6 +87,8 @@ export interface ApiCompositionRootDeps {
 
 export interface ApiCompositionRoot extends SubscriptionHandlers {
   handleStartCheckout: StartCheckoutHandler;
+  invoiceHandlers: InvoiceHandlers;
+  webhookHandlers: WebhookHandlers;
 }
 
 function resolvePersistenceDriver(
@@ -86,32 +111,55 @@ export function createApiCompositionRoot(
 
   const inMemorySubscriptionUseCases =
     deps.subscriptionUseCases ?? createInMemorySubscriptionUseCaseDeps();
+  const inMemoryInvoiceUseCases =
+    deps.invoiceUseCases ?? getSharedInvoiceUseCaseDeps();
 
   const pool =
     persistenceDriver === "postgres"
       ? deps.postgresPool ?? createPostgresPool()
       : null;
 
-  const postgresUseCasesByTenant = new Map<string, SubscriptionUseCaseDeps>();
+  const postgresSubscriptionUseCasesByTenant =
+    new Map<string, SubscriptionUseCaseDeps>();
+  const postgresInvoiceUseCasesByTenant = new Map<string, InvoiceUseCaseDeps>();
 
   const subscriptionUseCasesByTenant = deps.subscriptionUseCasesByTenant
     ? deps.subscriptionUseCasesByTenant
     : deps.subscriptionUseCases
       ? null
       : (tenantId: string): SubscriptionUseCaseDeps => {
-          if (persistenceDriver !== "postgres" || !pool) {
-            return inMemorySubscriptionUseCases;
-          }
+        if (persistenceDriver !== "postgres" || !pool) {
+          return inMemorySubscriptionUseCases;
+        }
 
-          const cached = postgresUseCasesByTenant.get(tenantId);
-          if (cached) {
-            return cached;
-          }
+        const cached = postgresSubscriptionUseCasesByTenant.get(tenantId);
+        if (cached) {
+          return cached;
+        }
 
-          const created = createPostgresSubscriptionUseCaseDeps(pool, tenantId);
-          postgresUseCasesByTenant.set(tenantId, created);
-          return created;
-        };
+        const created = createPostgresSubscriptionUseCaseDeps(pool, tenantId);
+        postgresSubscriptionUseCasesByTenant.set(tenantId, created);
+        return created;
+      };
+
+  const invoiceUseCasesByTenant = deps.invoiceUseCasesByTenant
+    ? deps.invoiceUseCasesByTenant
+    : deps.invoiceUseCases
+      ? null
+      : (tenantId: string): InvoiceUseCaseDeps => {
+        if (persistenceDriver !== "postgres" || !pool) {
+          return inMemoryInvoiceUseCases;
+        }
+
+        const cached = postgresInvoiceUseCasesByTenant.get(tenantId);
+        if (cached) {
+          return cached;
+        }
+
+        const created = createPostgresInvoiceUseCaseDeps(pool, tenantId);
+        postgresInvoiceUseCasesByTenant.set(tenantId, created);
+        return created;
+      };
 
   const subscriptionHandlers = createSubscriptionHandlers({
     subscriptionUseCases: inMemorySubscriptionUseCases,
@@ -122,8 +170,41 @@ export function createApiCompositionRoot(
     idGenerator,
   });
 
+  const invoiceHandlers =
+    deps.invoiceHandlers ??
+    createInvoiceHandlers({
+      invoiceUseCases: inMemoryInvoiceUseCases,
+      ...(invoiceUseCasesByTenant ? { invoiceUseCasesByTenant } : {}),
+    });
+
+  const webhookHandlerDeps: WebhookHandlerDeps =
+    deps.webhookHandlerDeps ??
+    (persistenceDriver === "postgres" && pool
+      ? {
+        idempotencyStore: createPostgresWebhookIdempotencyStore(pool),
+        auditStore: createPostgresWebhookAuditStore(pool),
+        eventPublisher: new StructuredLogCanonicalEventPublisher(),
+        ...(process.env.STRIPE_WEBHOOK_SECRET
+          ? { stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET }
+          : {}),
+      }
+      : {
+        idempotencyStore:
+          createInMemoryAsyncIdempotencyStore<CanonicalPaymentEvent>(),
+        auditStore: new StructuredLogWebhookAuditStore(),
+        eventPublisher: new StructuredLogCanonicalEventPublisher(),
+        ...(process.env.STRIPE_WEBHOOK_SECRET
+          ? { stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET }
+          : {}),
+      });
+
+  const webhookHandlers =
+    deps.webhookHandlers ?? createWebhookHandlers(webhookHandlerDeps);
+
   return {
     handleStartCheckout: createStartCheckoutHandler({ paymentProvider }),
     ...subscriptionHandlers,
+    invoiceHandlers,
+    webhookHandlers,
   };
 }

@@ -2,17 +2,11 @@ import {
   BadRequestError,
   InvalidWebhookSignatureError,
   processProviderWebhook,
-  createInMemoryAsyncIdempotencyStore,
   type AsyncIdempotencyStore,
   type CanonicalPaymentEventPublisher,
   type PaymentWebhookProvider,
   type WebhookAuditStore,
 } from "@grantledger/application";
-import {
-  createPostgresPool,
-  createPostgresWebhookAuditStore,
-  createPostgresWebhookIdempotencyStore,
-} from "@grantledger/infra-postgres";
 import {
   paymentWebhookEnvelopeSchema,
   type CanonicalPaymentEvent,
@@ -26,7 +20,7 @@ import { getHeader } from "../http/headers.js";
 import type { ApiResponse, Headers } from "../http/types.js";
 import { parseOrThrowBadRequest } from "../http/validation.js";
 
-class StructuredLogWebhookAuditStore implements WebhookAuditStore {
+export class StructuredLogWebhookAuditStore implements WebhookAuditStore {
   async saveRaw(input: {
     provider: PaymentProviderName;
     traceId: string;
@@ -44,7 +38,7 @@ class StructuredLogWebhookAuditStore implements WebhookAuditStore {
   }
 }
 
-class StructuredLogCanonicalEventPublisher
+export class StructuredLogCanonicalEventPublisher
   implements CanonicalPaymentEventPublisher {
   async publish(event: {
     provider: PaymentProviderName;
@@ -72,24 +66,21 @@ export interface WebhookHandlerDeps {
   stripeWebhookSecret?: string;
 }
 
-const defaultWebhookHandlerDeps: WebhookHandlerDeps = (() => {
-  if (process.env.PERSISTENCE_DRIVER === "postgres") {
-    const pool = createPostgresPool();
+export interface WebhookHandlers {
+  handleProviderWebhook(
+    headers: Headers,
+    payload: unknown,
+  ): Promise<ApiResponse>;
+}
 
-    return {
-      idempotencyStore: createPostgresWebhookIdempotencyStore(pool),
-      auditStore: createPostgresWebhookAuditStore(pool),
-      eventPublisher: new StructuredLogCanonicalEventPublisher(),
-    };
-  }
-
+export function createWebhookHandlers(
+  deps: WebhookHandlerDeps,
+): WebhookHandlers {
   return {
-    idempotencyStore:
-      createInMemoryAsyncIdempotencyStore<CanonicalPaymentEvent>(),
-    auditStore: new StructuredLogWebhookAuditStore(),
-    eventPublisher: new StructuredLogCanonicalEventPublisher(),
+    handleProviderWebhook: (headers, payload) =>
+      handleProviderWebhook(headers, payload, deps),
   };
-})();
+}
 
 function resolveProvider(
   providerName: PaymentProviderName,
@@ -129,7 +120,7 @@ function traceIdFromHeaders(headers: Headers): string | undefined {
 export async function handleProviderWebhook(
   headers: Headers,
   payload: unknown,
-  deps: WebhookHandlerDeps = defaultWebhookHandlerDeps,
+  deps: WebhookHandlerDeps,
 ): Promise<ApiResponse> {
   try {
     const parsedPayload = parseOrThrowBadRequest(
