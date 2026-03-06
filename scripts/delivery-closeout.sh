@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO="${REPO:-gabe-dalmolin/grantledger-platform}"
+REPO="${REPO:-gabedalmolin/grantledger-platform}"
 PROJECT_NUMBER="${PROJECT_NUMBER:-6}"
 PROJECT_OWNER="${PROJECT_OWNER:-john-dalmolin}"
 BASE_BRANCH="${BASE_BRANCH:-main}"
@@ -29,7 +29,7 @@ Required:
 
 Optional:
   --issue <number>             Issue number (auto-detected from "Closes #N" when omitted)
-  --repo <slug>                Repository slug (default: gabe-dalmolin/grantledger-platform)
+  --repo <slug>                Repository slug (default: gabedalmolin/grantledger-platform)
   --project <number>           Project number (default: 6)
   --owner <owner>              Project owner (default: john-dalmolin, fallback @me)
   --base <branch>              Base branch to sync locally (default: main)

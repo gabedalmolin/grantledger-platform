@@ -11,7 +11,7 @@ Required:
   --issue <number>
 
 Optional (defaults):
-  --repo <slug>        gabe-dalmolin/grantledger-platform
+  --repo <slug>        gabedalmolin/grantledger-platform
   --owner <owner>      john-dalmolin
   --project <number>   6
   --milestone <name>   Architecture Improve
@@ -117,7 +117,7 @@ project_add_item() {
   fail "Unable to add PR item to project #$PROJECT_NUMBER"
 }
 
-REPO="gabe-dalmolin/grantledger-platform"
+REPO="gabedalmolin/grantledger-platform"
 OWNER="john-dalmolin"
 PROJECT_NUMBER="6"
 MILESTONE="Architecture Improve"

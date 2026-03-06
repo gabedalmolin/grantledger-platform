@@ -1,6 +1,6 @@
 # GrantLedger Platform
 
-[![CI](https://github.com/gabe-dalmolin/grantledger-platform/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/gabe-dalmolin/grantledger-platform/actions/workflows/ci.yml)
+[![CI](https://github.com/gabedalmolin/grantledger-platform/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/gabedalmolin/grantledger-platform/actions/workflows/ci.yml)
 
 GrantLedger is a multi-tenant SaaS billing platform built to make change-safe billing workflows easier to reason about, validate, and evolve.
 
@@ -329,7 +329,7 @@ Architecture changes follow an issue-driven stream (`ARCH-*`) with mandatory doc
 
 ## Project Links
 
-- Repository: [gabe-dalmolin/grantledger-platform](https://github.com/gabe-dalmolin/grantledger-platform)
+- Repository: [gabedalmolin/grantledger-platform](https://github.com/gabedalmolin/grantledger-platform)
 - Project board: [GitHub Project #6](https://github.com/users/john-dalmolin/projects/6)
 
 ## Acknowledgments
