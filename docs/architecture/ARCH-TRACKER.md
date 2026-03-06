@@ -194,6 +194,14 @@ Deliver structural improvements without blocking feature delivery.
   - Merge SHA: `e7495526b79c558cead94e05d052c8fb694f79a6`
   - Notes: Added Postgres integration regression coverage for idempotency begin/replay/conflict/restart flows, invoice job lease/retry/dead-letter guard behavior, and tenant-scoped persistence safety. No ADR change required.
 
+- [x] ARCH-024 - Durable webhook idempotency and audit persistence
+  - Status: DONE
+  - Issue: `#121`
+  - Branch: `feat/arch-024-webhook-durable-persistence`
+  - PR: `#122`
+  - Merge SHA: `8b77832143d1a400f50112a1bb9d95c7963bfe25`
+  - Notes: Replaced process-local webhook dedup with durable Postgres-backed idempotency state, persisted processed/duplicate/rejected webhook audit rows, and hardened PG integration test migrations against concurrent suite startup races. No ADR change required.
+
 ## ADR References
 
 - [x] ADR-005 - Domain vs Application boundary

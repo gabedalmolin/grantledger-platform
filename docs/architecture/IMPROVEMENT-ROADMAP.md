@@ -30,6 +30,7 @@ Canonical references:
 - ARCH-020 completed (`#77`, branch `chore/arch-020-observability-baseline`)
 - ARCH-022 completed (`#99`, merge `fb43b20`)
 - ARCH-023 completed (`#115`, merge `e749552`)
+- ARCH-024 completed (`#122`, merge `8b77832`)
 
 ## Target Architecture Principles
 
@@ -41,7 +42,7 @@ Canonical references:
 
 ## Current Prioritized Sequence
 
-- ARCH stream hardening baseline completed through ARCH-023.
+- ARCH stream hardening baseline completed through ARCH-024.
 - New architecture increments should open new ARCH issues from concrete risks.
 
 ## Delivery Strategy
