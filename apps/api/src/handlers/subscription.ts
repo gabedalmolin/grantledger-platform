@@ -3,26 +3,20 @@ import {
   BadRequestError,
   cancelSubscriptionAtPeriodEnd,
   cancelSubscriptionNow,
-  createInMemoryAsyncIdempotencyStore,
   createSubscription,
   downgradeSubscription,
-  type SubscriptionAuditLogger,
-  type SubscriptionEventPublisher,
-  type SubscriptionIdempotencyStore,
-  type SubscriptionRepository,
   type SubscriptionUseCaseDeps,
   upgradeSubscription,
 } from "@grantledger/application";
+
 import type {
   CancelSubscriptionAtPeriodEndCommandInput,
   CancelSubscriptionNowCommandInput,
   CreateSubscriptionCommandInput,
   DowngradeSubscriptionCommandInput,
-  Subscription,
-  SubscriptionAuditEvent,
-  SubscriptionDomainEvent,
   UpgradeSubscriptionCommandInput,
 } from "@grantledger/contracts";
+
 import {
   upgradeSubscriptionCommandPayloadSchema,
   createSubscriptionCommandPayloadSchema,
@@ -32,49 +26,11 @@ import {
 } from "@grantledger/contracts";
 
 import { parseOrThrowBadRequest } from "../http/validation.js";
-import { emitStructuredLog, type Clock, type IdGenerator } from "@grantledger/shared";
+import { type Clock, type IdGenerator } from "@grantledger/shared";
 
 import { getHeader } from "../http/headers.js";
 import type { ApiResponse, Headers } from "../http/types.js";
 import { resolveContextFromHeaders } from "./auth.js";
-
-class InMemorySubscriptionRepository implements SubscriptionRepository {
-  private readonly store = new Map<string, Subscription>();
-
-  async findById(subscriptionId: string): Promise<Subscription | null> {
-    return this.store.get(subscriptionId) ?? null;
-  }
-
-  async create(subscription: Subscription): Promise<void> {
-    this.store.set(subscription.id, subscription);
-  }
-
-  async save(subscription: Subscription): Promise<void> {
-    this.store.set(subscription.id, subscription);
-  }
-}
-
-class ConsoleSubscriptionEventPublisher implements SubscriptionEventPublisher {
-  async publish(event: SubscriptionDomainEvent): Promise<void> {
-    emitStructuredLog({ type: "domain_event", payload: event as unknown as Record<string, unknown> });
-  }
-}
-
-class ConsoleSubscriptionAuditLogger implements SubscriptionAuditLogger {
-  async log(event: SubscriptionAuditEvent): Promise<void> {
-    emitStructuredLog({ type: "audit_event", payload: event as unknown as Record<string, unknown> });
-  }
-}
-
-export function createInMemorySubscriptionUseCaseDeps(): SubscriptionUseCaseDeps {
-  return {
-    repository: new InMemorySubscriptionRepository(),
-    idempotencyStore:
-      createInMemoryAsyncIdempotencyStore<Subscription>() satisfies SubscriptionIdempotencyStore,
-    eventPublisher: new ConsoleSubscriptionEventPublisher(),
-    auditLogger: new ConsoleSubscriptionAuditLogger(),
-  };
-}
 
 export interface SubscriptionHandlersDeps {
   subscriptionUseCases: SubscriptionUseCaseDeps;
