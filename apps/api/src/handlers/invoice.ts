@@ -2,13 +2,8 @@ import {
   BadRequestError,
   enqueueInvoiceGeneration,
   getInvoiceGenerationJobStatus,
-  getSharedInvoiceUseCaseDeps,
   type InvoiceUseCaseDeps,
 } from "@grantledger/application";
-import {
-  createPostgresInvoiceUseCaseDeps,
-  createPostgresPool,
-} from "@grantledger/infra-postgres";
 import {
   enqueueInvoiceGenerationPayloadSchema,
   getInvoiceGenerationJobStatusPayloadSchema,
@@ -26,31 +21,27 @@ export interface InvoiceHandlersDeps {
   invoiceUseCasesByTenant?: (tenantId: string) => InvoiceUseCaseDeps;
 }
 
-const defaultInvoiceHandlerDeps: InvoiceHandlersDeps = (() => {
-  const base: InvoiceHandlersDeps = {
-    invoiceUseCases: getSharedInvoiceUseCaseDeps(),
-  };
+export interface InvoiceHandlers {
+  handleEnqueueInvoiceGeneration(
+    headers: Headers,
+    payload: unknown,
+  ): Promise<ApiResponse>;
+  handleGetInvoiceGenerationJobStatus(
+    headers: Headers,
+    payload: unknown,
+  ): Promise<ApiResponse>;
+}
 
-  if (process.env.PERSISTENCE_DRIVER !== "postgres") {
-    return base;
-  }
-
-  const pool = createPostgresPool();
-  const byTenant = new Map<string, InvoiceUseCaseDeps>();
-
+export function createInvoiceHandlers(
+  deps: InvoiceHandlersDeps,
+): InvoiceHandlers {
   return {
-    ...base,
-    invoiceUseCasesByTenant: (tenantId: string): InvoiceUseCaseDeps => {
-      const cached = byTenant.get(tenantId);
-      if (cached) {
-        return cached;
-      }
-      const created = createPostgresInvoiceUseCaseDeps(pool, tenantId);
-      byTenant.set(tenantId, created);
-      return created;
-    },
+    handleEnqueueInvoiceGeneration: (headers, payload) =>
+      handleEnqueueInvoiceGeneration(headers, payload, deps),
+    handleGetInvoiceGenerationJobStatus: (headers, payload) =>
+      handleGetInvoiceGenerationJobStatus(headers, payload, deps),
   };
-})();
+}
 
 function resolveInvoiceUseCases(
   deps: InvoiceHandlersDeps,
@@ -102,7 +93,7 @@ function normalizeEnqueueInvoiceGenerationPayload(
 export async function handleEnqueueInvoiceGeneration(
   headers: Headers,
   payload: unknown,
-  deps: InvoiceHandlersDeps = defaultInvoiceHandlerDeps,
+  deps: InvoiceHandlersDeps,
 ): Promise<ApiResponse> {
   try {
     const context = resolveContextFromHeaders(headers);
@@ -140,7 +131,7 @@ export async function handleEnqueueInvoiceGeneration(
 export async function handleGetInvoiceGenerationJobStatus(
   headers: Headers,
   payload: unknown,
-  deps: InvoiceHandlersDeps = defaultInvoiceHandlerDeps,
+  deps: InvoiceHandlersDeps,
 ): Promise<ApiResponse> {
   try {
     const context = resolveContextFromHeaders(headers);
