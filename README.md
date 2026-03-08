@@ -332,10 +332,9 @@ Architecture changes follow an issue-driven stream (`ARCH-*`) with mandatory doc
 - Repository: [gabedalmolin/grantledger-platform](https://github.com/gabedalmolin/grantledger-platform)
 - Project board: [GitHub Project #6](https://github.com/users/john-dalmolin/projects/6)
 
-## Acknowledgments
+## Acknowledgements
 
-Special thanks to [Marcos Pont](https://github.com/marcospont) for all the support, advice, and feedback throughout this project.
-His guidance was fundamental to shaping and improving GrantLedger.
+Special thanks to [Marcos Pont](https://github.com/marcospont), for his support, technical guidance, and consistent feedback throughout this project. His mentorship, engineering judgement, and practical perspective were instrumental in challenging assumptions, sharpening architectural decisions, and raising the overall technical standard of this implementation.
 
 ## References
 
