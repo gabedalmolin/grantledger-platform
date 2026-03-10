@@ -2,6 +2,7 @@ import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { resetApiMetricsForTests } from "./metrics.js";
 import { createApiRequestListener } from "./server.js";
 
 async function withServer(
@@ -51,6 +52,7 @@ function createStubListener(overrides: Partial<Parameters<typeof createApiReques
 
 describe("createApiRequestListener", () => {
   afterEach(() => {
+    resetApiMetricsForTests();
     vi.restoreAllMocks();
   });
 
@@ -177,6 +179,24 @@ describe("createApiRequestListener", () => {
         code: "PAYLOAD_TOO_LARGE",
         traceId: "trace_too_large",
       });
+    });
+  });
+
+  it("exposes scrapeable metrics for the API runtime", async () => {
+    const listener = createStubListener();
+
+    await withServer(listener, async (baseUrl) => {
+      await fetch(`${baseUrl}/healthz`);
+
+      const response = await fetch(`${baseUrl}/metrics`);
+      const body = await response.text();
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toContain("text/plain");
+      expect(body).toContain("grantledger_api_http_requests_total");
+      expect(body).toContain("grantledger_api_http_request_duration_seconds");
+      expect(body).toContain("grantledger_api_health_state");
+      expect(body).toContain('route="/healthz"');
     });
   });
 });
