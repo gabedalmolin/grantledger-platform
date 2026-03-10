@@ -10,6 +10,7 @@
     "test": "vitest run --root ../../ --config vitest.config.ts --passWithNoTests packages/shared/src"
   },
   "dependencies": {
-    "luxon": "^3.7.2"
+    "luxon": "^3.7.2",
+    "prom-client": "^15.1.3"
   }
 }

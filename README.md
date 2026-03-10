@@ -324,11 +324,12 @@ GrantLedger now includes a minimal executable runtime baseline for both primary 
 
 - `apps/api/src/server.ts`
   - a thin Node HTTP host around the existing API handlers
-  - includes `healthz` and `readyz`
+  - includes `healthz`, `readyz`, and `metrics`
   - reuses the same Postgres pool for request handling and readiness checks when `PERSISTENCE_DRIVER=postgres`
 - `apps/worker/src/main.ts`
   - a long-running worker process around `runInvoiceWorkerOnce`
   - supports configurable polling through `WORKER_POLL_INTERVAL_MS`
+  - exposes Prometheus-style metrics on a dedicated HTTP endpoint
 
 ### Environment contract
 
@@ -353,6 +354,9 @@ GrantLedger now includes a minimal executable runtime baseline for both primary 
   - required when `PERSISTENCE_DRIVER=postgres`
 - `STRIPE_WEBHOOK_SECRET`
   - required only when processing Stripe webhooks through the runtime host
+- `GRANTLEDGER_VERSION`
+  - optional
+  - included in structured logs and metrics labels when provided
 
 #### Worker
 
@@ -377,6 +381,12 @@ GrantLedger now includes a minimal executable runtime baseline for both primary 
 - `WORKER_POLL_INTERVAL_MS`
   - optional
   - defaults to `1000`
+- `WORKER_METRICS_HOST`
+  - optional
+  - defaults to `0.0.0.0`
+- `WORKER_METRICS_PORT`
+  - optional
+  - defaults to `9464`
 
 ### Production-like local validation
 
@@ -396,6 +406,42 @@ docker build -f apps/worker/Dockerfile -t grantledger-worker .
 ```
 
 Both runtime images now execute as a non-root user by default.
+
+## Observability Baseline
+
+GrantLedger now exposes a minimal operational observability surface suitable for local validation and review:
+
+- API metrics:
+  - `GET /metrics`
+  - request count, request duration, error count, and health/readiness state
+- Worker metrics:
+  - dedicated HTTP metrics host and port
+  - cycle count, cycle duration, failure count, queue depth, retry/dead-letter gauges, and terminal failure rate
+- Structured logs:
+  - stable `service`, `runtime`, `environment`, and optional `version` metadata
+
+Observability assets now live under `deploy/observability`:
+
+- `deploy/observability/prometheus.local.yml`
+  - local Prometheus scrape configuration for API and worker metrics
+- `deploy/observability/grafana/dashboards/grantledger-runtime.json`
+  - starter Grafana dashboard covering API and worker runtime signals
+
+### Local observability path
+
+Start the services locally:
+
+```bash
+PERSISTENCE_DRIVER=memory npm run api:start
+PERSISTENCE_DRIVER=memory npm run worker:start
+```
+
+Then scrape:
+
+- API metrics at `http://localhost:3000/metrics`
+- Worker metrics at `http://localhost:9464/metrics`
+
+Use the Prometheus config in `deploy/observability/prometheus.local.yml`, and import the Grafana dashboard from `deploy/observability/grafana/dashboards/grantledger-runtime.json`.
 
 ## Governance and Architecture Discipline
 

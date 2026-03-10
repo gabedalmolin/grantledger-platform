@@ -6,6 +6,8 @@ export type PersistenceDriver = "memory" | "postgres";
 const DEFAULT_WORKER_POLL_INTERVAL_MS = 1000;
 const DEFAULT_LEASE_SECONDS = 30;
 const DEFAULT_HEARTBEAT_SECONDS = 10;
+const DEFAULT_WORKER_METRICS_HOST = "0.0.0.0";
+const DEFAULT_WORKER_METRICS_PORT = 9464;
 const DEFAULT_WORKER_ID = `${hostname()}-${process.pid}-${randomUUID().slice(0, 8)}`;
 
 export interface WorkerRuntimeConfig {
@@ -16,6 +18,8 @@ export interface WorkerRuntimeConfig {
   workerId: string;
   leaseSeconds: number;
   heartbeatSeconds: number;
+  metricsHost: string;
+  metricsPort: number;
 }
 
 function parsePositiveInt(
@@ -30,6 +34,19 @@ function parsePositiveInt(
   const value = Number.parseInt(raw, 10);
   if (!Number.isInteger(value) || value <= 0) {
     throw new Error(`${envName} must be a positive integer`);
+  }
+
+  return value;
+}
+
+function parsePort(raw: string | undefined, envName: string, fallback: number): number {
+  if (!raw) {
+    return fallback;
+  }
+
+  const value = Number.parseInt(raw, 10);
+  if (!Number.isInteger(value) || value <= 0 || value > 65535) {
+    throw new Error(`${envName} must be a valid TCP port number`);
   }
 
   return value;
@@ -90,5 +107,11 @@ export function resolveWorkerRuntimeConfig(
     workerId: env.WORKER_ID?.trim() || DEFAULT_WORKER_ID,
     leaseSeconds,
     heartbeatSeconds,
+    metricsHost: env.WORKER_METRICS_HOST?.trim() || DEFAULT_WORKER_METRICS_HOST,
+    metricsPort: parsePort(
+      env.WORKER_METRICS_PORT,
+      "WORKER_METRICS_PORT",
+      DEFAULT_WORKER_METRICS_PORT,
+    ),
   };
 }

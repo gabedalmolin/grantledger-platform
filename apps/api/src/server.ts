@@ -11,7 +11,12 @@ import {
   NotFoundError,
 } from "@grantledger/application";
 import { createPostgresPool } from "@grantledger/infra-postgres";
-import { buildStandardErrorBody, emitStructuredLog } from "@grantledger/shared";
+import {
+  buildStandardErrorBody,
+  configureStructuredLogging,
+  emitStructuredLog,
+  resolveServiceObservabilityContext,
+} from "@grantledger/shared";
 import type { Pool } from "pg";
 
 import { createApiCompositionRoot } from "./bootstrap/composition-root.js";
@@ -20,6 +25,11 @@ import { handleCreateSubscription } from "./handlers/auth.js";
 import { toApiErrorResponse } from "./http/errors.js";
 import { getHeader } from "./http/headers.js";
 import type { ApiResponse, Headers } from "./http/types.js";
+import {
+  getApiMetrics,
+  recordApiRequestMetric,
+  type ApiMetrics,
+} from "./metrics.js";
 
 const DEFAULT_API_RESPONSE_HEADERS = {
   "cache-control": "no-store",
@@ -53,6 +63,7 @@ export interface ApiRequestListenerDeps {
   handleGetInvoiceGenerationJobStatus: ApiRouteHandler;
   handleProviderWebhook: ApiRouteHandler;
   jsonBodyLimitBytes?: number;
+  metrics?: ApiMetrics;
   readinessCheck?: () => Promise<void>;
 }
 
@@ -126,6 +137,20 @@ function sendJson(response: Parameters<RequestListener>[1], status: number, body
   response.end(JSON.stringify(body));
 }
 
+function sendText(
+  response: Parameters<RequestListener>[1],
+  status: number,
+  body: string,
+  contentType: string,
+): void {
+  response.statusCode = status;
+  for (const [header, value] of Object.entries(DEFAULT_API_RESPONSE_HEADERS)) {
+    response.setHeader(header, value);
+  }
+  response.setHeader("content-type", contentType);
+  response.end(body);
+}
+
 function sendApiResponse(
   response: Parameters<RequestListener>[1],
   apiResponse: ApiResponse,
@@ -136,6 +161,7 @@ function sendApiResponse(
 export function createApiRequestListener(
   deps: ApiRequestListenerDeps,
 ): RequestListener {
+  const metrics = deps.metrics ?? getApiMetrics();
   const routes: Record<string, Record<string, ApiRouteHandler>> = {
     "/v1/auth/subscriptions": {
       POST: deps.handleCreateSubscription,
@@ -159,9 +185,14 @@ export function createApiRequestListener(
     const traceId = getHeader(headers, "x-trace-id") ?? undefined;
     const method = (request.method ?? "GET").toUpperCase();
     const url = new URL(request.url ?? "/", "http://grantledger.local");
+    const startedAt = process.hrtime.bigint();
+    let responseStatus = 500;
+    const route = url.pathname;
 
     try {
       if (method === "GET" && url.pathname === "/healthz") {
+        metrics.healthState.set(1);
+        responseStatus = 200;
         sendJson(response, 200, { status: "ok" });
         return;
       }
@@ -169,8 +200,12 @@ export function createApiRequestListener(
       if (method === "GET" && url.pathname === "/readyz") {
         try {
           await deps.readinessCheck?.();
+          metrics.readinessState.set(1);
+          responseStatus = 200;
           sendJson(response, 200, { status: "ready" });
         } catch (error) {
+          metrics.readinessState.set(0);
+          responseStatus = 503;
           sendJson(response, 503, {
             status: "not_ready",
             message:
@@ -180,8 +215,16 @@ export function createApiRequestListener(
         return;
       }
 
+      if (method === "GET" && url.pathname === "/metrics") {
+        const body = await metrics.registry.metrics();
+        responseStatus = 200;
+        sendText(response, 200, body, metrics.registry.contentType);
+        return;
+      }
+
       const pathRoutes = routes[url.pathname];
       if (!pathRoutes) {
+        responseStatus = 404;
         sendApiResponse(
           response,
           toApiErrorResponse(new NotFoundError("Route not found"), traceId),
@@ -192,6 +235,7 @@ export function createApiRequestListener(
       const routeHandler = pathRoutes[method];
       if (!routeHandler) {
         response.setHeader("allow", Object.keys(pathRoutes).join(", "));
+        responseStatus = 405;
         sendJson(
           response,
           405,
@@ -209,9 +253,11 @@ export function createApiRequestListener(
         deps.jsonBodyLimitBytes ?? Number.MAX_SAFE_INTEGER,
       );
       const apiResponse = await routeHandler(headers, payload);
+      responseStatus = apiResponse.status;
       sendApiResponse(response, apiResponse);
     } catch (error) {
       if (error instanceof PayloadTooLargeError) {
+        responseStatus = 413;
         sendJson(
           response,
           413,
@@ -224,7 +270,16 @@ export function createApiRequestListener(
         return;
       }
 
-      sendApiResponse(response, toApiErrorResponse(error, traceId));
+      const apiErrorResponse = toApiErrorResponse(error, traceId);
+      responseStatus = apiErrorResponse.status;
+      sendApiResponse(response, apiErrorResponse);
+    } finally {
+      recordApiRequestMetric(metrics, {
+        route,
+        method,
+        status: responseStatus,
+        durationSeconds: Number(process.hrtime.bigint() - startedAt) / 1_000_000_000,
+      });
     }
   };
 }
@@ -244,6 +299,7 @@ export async function startApiServer(
 ): Promise<StartedApiServer> {
   const env = input.env ?? process.env;
   const runtimeConfig = resolveApiRuntimeConfig(env);
+  configureStructuredLogging(resolveServiceObservabilityContext("api", env));
   const resolvedConfig = {
     host: runtimeConfig.host,
     port: runtimeConfig.port,
@@ -281,6 +337,7 @@ export async function startApiServer(
       apiRoot.invoiceHandlers.handleGetInvoiceGenerationJobStatus,
     handleProviderWebhook: apiRoot.webhookHandlers.handleProviderWebhook,
     jsonBodyLimitBytes: resolvedConfig.jsonBodyLimitBytes,
+    metrics: getApiMetrics(env),
     readinessCheck: resolveReadinessCheck(postgresPool),
     ...input.deps,
   });
