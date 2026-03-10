@@ -34,6 +34,14 @@ npm run test
 npm run quality:gate
 ```
 
+### Guided self-hosted demo
+
+```bash
+cp deploy/self-hosted/.env.example deploy/self-hosted/.env
+docker compose -f deploy/self-hosted/docker-compose.yml --env-file deploy/self-hosted/.env up -d --build
+npm run demo:selfhost
+```
+
 ### Durable Postgres validation
 
 ```bash
