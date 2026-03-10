@@ -3,11 +3,30 @@ import { Registry, collectDefaultMetrics } from "prom-client";
 import type { ServiceObservabilityContext } from "./observability.js";
 
 function sanitiseMetricPrefix(service: string): string {
-  const normalised = service
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "");
+  const trimmed = service.trim().toLowerCase();
+  let normalised = "";
+  let previousWasSeparator = false;
+
+  for (const character of trimmed) {
+    const isAlphaNumeric =
+      (character >= "a" && character <= "z") ||
+      (character >= "0" && character <= "9");
+
+    if (isAlphaNumeric) {
+      normalised += character;
+      previousWasSeparator = false;
+      continue;
+    }
+
+    if (!previousWasSeparator && normalised.length > 0) {
+      normalised += "_";
+      previousWasSeparator = true;
+    }
+  }
+
+  if (normalised.endsWith("_")) {
+    normalised = normalised.slice(0, -1);
+  }
 
   return normalised || "grantledger_service";
 }
