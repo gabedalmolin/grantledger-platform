@@ -7,7 +7,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc -b",
-    "test": "node -e \"console.log('No tests yet: @grantledger/infra-postgres')\""
+    "test": "vitest run --root ../../ --config vitest.config.ts --passWithNoTests packages/infra-postgres/src"
   },
   "dependencies": {
     "@grantledger/application": "0.1.0",

@@ -12,12 +12,9 @@ import {
   getInvoiceGenerationJobStatusResponseSchema,
   paymentWebhookEnvelopeSchema,
   paymentWebhookProcessResultSchema,
-} from "../packages/contracts/dist/schemas/index.js";
+} from "../packages/contracts/src/schemas/index.ts";
 
-const outPath = path.resolve(
-  process.cwd(),
-  "docs/openapi/openapi.json",
-);
+const outPath = path.resolve(process.cwd(), "docs/openapi/openapi.json");
 
 const CLIENT_ERROR_DESCRIPTIONS = {
   "400": "Bad Request",
@@ -70,7 +67,7 @@ const OPERATION_METADATA = {
   },
 };
 
-function enrichForLint(doc) {
+function enrichForLint(doc: Record<string, any>) {
   doc.info = {
     ...doc.info,
     license: doc.info?.license ?? {
@@ -81,9 +78,7 @@ function enrichForLint(doc) {
 
   doc.servers = doc.servers?.length
     ? doc.servers
-    : [
-      { url: "https://api.grantledger.com", description: "Production" },
-    ];
+    : [{ url: "https://api.grantledger.com", description: "Production" }];
 
   doc.components = doc.components ?? {};
   doc.components.securitySchemes = doc.components.securitySchemes ?? {};
@@ -94,8 +89,8 @@ function enrichForLint(doc) {
       bearerFormat: "JWT",
     };
 
-  for (const [path, methods] of Object.entries(OPERATION_METADATA)) {
-    const pathItem = doc.paths?.[path];
+  for (const [pathKey, methods] of Object.entries(OPERATION_METADATA)) {
+    const pathItem = doc.paths?.[pathKey];
     if (!pathItem) continue;
 
     for (const [method, meta] of Object.entries(methods)) {
@@ -109,7 +104,10 @@ function enrichForLint(doc) {
 
       for (const status of meta.clientErrors) {
         op.responses[status] ??= {
-          description: CLIENT_ERROR_DESCRIPTIONS[status] ?? "Client Error",
+          description:
+            CLIENT_ERROR_DESCRIPTIONS[
+              status as keyof typeof CLIENT_ERROR_DESCRIPTIONS
+            ] ?? "Client Error",
         };
       }
     }

@@ -7,7 +7,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc -b",
-    "test": "node -e \"console.log('No tests yet: @grantledger/shared')\""
+    "test": "vitest run --root ../../ --config vitest.config.ts --passWithNoTests packages/shared/src"
   },
   "dependencies": {
     "luxon": "^3.7.2"

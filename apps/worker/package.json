@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "tsc -b",
-    "test": "node -e \"console.log('No tests yet: @grantledger/worker')\""
+    "test": "vitest run --root ../../ --config vitest.config.ts --passWithNoTests apps/worker/src"
   },
   "dependencies": {
     "@grantledger/shared": "0.1.0",

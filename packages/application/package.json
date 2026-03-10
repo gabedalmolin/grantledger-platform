@@ -7,7 +7,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc -b",
-    "test": "node -e \"console.log('No tests yet: @grantledger/application')\""
+    "test": "vitest run --root ../../ --config vitest.config.ts --passWithNoTests packages/application/src"
   },
   "dependencies": {
     "@grantledger/shared": "0.1.0",
