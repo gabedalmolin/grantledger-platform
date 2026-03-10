@@ -7,8 +7,7 @@ import {
   type InvoiceWorkerRuntimeDeps,
   type RunInvoiceWorkerOnceResult,
 } from "./invoice-worker.js";
-
-const DEFAULT_WORKER_POLL_INTERVAL_MS = 1000;
+import { resolveWorkerRuntimeConfig } from "./runtime-config.js";
 
 export interface InvoiceWorkerProcessConfig {
   pollIntervalMs: number;
@@ -22,28 +21,13 @@ export interface RunInvoiceWorkerProcessInput {
   sleep?: (milliseconds: number, signal?: AbortSignal) => Promise<void>;
 }
 
-function parsePositiveInt(raw: string | undefined, envName: string, fallback: number): number {
-  if (!raw) {
-    return fallback;
-  }
-
-  const value = Number.parseInt(raw, 10);
-  if (!Number.isInteger(value) || value <= 0) {
-    throw new Error(`${envName} must be a positive integer`);
-  }
-
-  return value;
-}
-
 export function resolveInvoiceWorkerProcessConfig(
   env: NodeJS.ProcessEnv = process.env,
 ): InvoiceWorkerProcessConfig {
+  const config = resolveWorkerRuntimeConfig(env);
+
   return {
-    pollIntervalMs: parsePositiveInt(
-      env.WORKER_POLL_INTERVAL_MS,
-      "WORKER_POLL_INTERVAL_MS",
-      DEFAULT_WORKER_POLL_INTERVAL_MS,
-    ),
+    pollIntervalMs: config.pollIntervalMs,
   };
 }
 
@@ -75,7 +59,7 @@ export async function runInvoiceWorkerProcess(
   input: RunInvoiceWorkerProcessInput = {},
 ): Promise<void> {
   const env = input.env ?? process.env;
-  const config = resolveInvoiceWorkerProcessConfig(env);
+  const config = resolveWorkerRuntimeConfig(env);
   const deps = input.deps;
   const runCycle = input.runCycle ?? (() => runInvoiceWorkerOnce(deps));
   const sleep = input.sleep ?? sleepWithSignal;
@@ -97,9 +81,9 @@ function isMainModule(moduleUrl: string): boolean {
 }
 
 async function runWorkerAsMain(): Promise<void> {
-  const deps = createDefaultWorkerDeps();
+  const config = resolveWorkerRuntimeConfig();
+  const deps = createDefaultWorkerDeps(config);
   const controller = new AbortController();
-  const config = resolveInvoiceWorkerProcessConfig();
   let stopping = false;
   let closed = false;
 
@@ -138,6 +122,7 @@ async function runWorkerAsMain(): Promise<void> {
     type: "invoice_worker_process_started",
     payload: {
       pollIntervalMs: config.pollIntervalMs,
+      persistenceDriver: config.persistenceDriver,
     },
   });
 

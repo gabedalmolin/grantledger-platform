@@ -334,12 +334,17 @@ GrantLedger now includes a minimal executable runtime baseline for both primary 
 
 #### API
 
+- `.env.example`
+  - provides a baseline local/runtime configuration template
 - `API_HOST`
   - optional
   - defaults to `0.0.0.0`
 - `API_PORT`
   - optional
   - defaults to `3000`
+- `API_JSON_BODY_LIMIT_BYTES`
+  - optional
+  - defaults to `1048576` (1 MiB)
 - `PERSISTENCE_DRIVER`
   - optional
   - `memory` by default
@@ -351,6 +356,8 @@ GrantLedger now includes a minimal executable runtime baseline for both primary 
 
 #### Worker
 
+- `.env.example`
+  - provides a baseline local/runtime configuration template
 - `PERSISTENCE_DRIVER`
   - optional
   - `memory` by default
@@ -387,6 +394,8 @@ Or build container images:
 docker build -f apps/api/Dockerfile -t grantledger-api .
 docker build -f apps/worker/Dockerfile -t grantledger-worker .
 ```
+
+Both runtime images now execute as a non-root user by default.
 
 ## Governance and Architecture Discipline
 

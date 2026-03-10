@@ -1,5 +1,8 @@
 import { createApiCompositionRoot } from "./bootstrap/composition-root.js";
-import { validateApiRuntimeConfig } from "./bootstrap/runtime-config.js";
+import {
+  resolveApiRuntimeConfig,
+  validateApiRuntimeConfig,
+} from "./bootstrap/runtime-config.js";
 
 export { createApiCompositionRoot } from "./bootstrap/composition-root.js";
 export * from "./server.js";
@@ -28,7 +31,14 @@ export {
 
 validateApiRuntimeConfig();
 
-const apiRoot = createApiCompositionRoot();
+const runtimeConfig = resolveApiRuntimeConfig();
+
+const apiRoot = createApiCompositionRoot({
+  persistenceDriver: runtimeConfig.persistenceDriver,
+  ...(runtimeConfig.stripeWebhookSecret
+    ? { stripeWebhookSecret: runtimeConfig.stripeWebhookSecret }
+    : {}),
+});
 
 export const handleStartCheckout = apiRoot.handleStartCheckout;
 export const handleEnqueueInvoiceGeneration =

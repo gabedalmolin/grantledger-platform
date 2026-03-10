@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto";
-import { hostname } from "node:os";
 import {
   createInMemoryInvoiceOpsMonitor,
   getSharedInvoiceUseCaseDeps,
@@ -13,6 +12,7 @@ import {
   createPostgresPool,
 } from "@grantledger/infra-postgres";
 import { emitStructuredLog } from "@grantledger/shared";
+import { resolveWorkerRuntimeConfig, type WorkerRuntimeConfig } from "./runtime-config.js";
 
 export interface InvoiceWorkerDeps {
   invoiceUseCases: InvoiceUseCaseDeps;
@@ -34,10 +34,6 @@ export interface InvoiceWorkerRuntimeConfig {
   heartbeatSeconds: number;
 }
 
-const DEFAULT_LEASE_SECONDS = 30;
-const DEFAULT_HEARTBEAT_SECONDS = 10;
-const defaultWorkerId = `${hostname()}-${process.pid}-${randomUUID().slice(0, 8)}`;
-
 const EMPTY_SNAPSHOT: InvoiceOpsSnapshot = {
   queueDepth: 0,
   processingCount: 0,
@@ -47,59 +43,24 @@ const EMPTY_SNAPSHOT: InvoiceOpsSnapshot = {
   terminalFailureRate: 0,
 };
 
-function parsePositiveInt(
-  raw: string | undefined,
-  envName: string,
-  fallback: number,
-): number {
-  if (!raw) {
-    return fallback;
-  }
-
-  const value = Number.parseInt(raw, 10);
-  if (!Number.isInteger(value) || value <= 0) {
-    throw new Error(`${envName} must be a positive integer`);
-  }
-
-  return value;
-}
-
 export function resolveInvoiceWorkerRuntimeConfig(
   env: NodeJS.ProcessEnv = process.env,
 ): InvoiceWorkerRuntimeConfig {
-  const workerId = env.WORKER_ID?.trim() || defaultWorkerId;
-  const leaseSeconds = parsePositiveInt(
-    env.JOB_LEASE_SECONDS,
-    "JOB_LEASE_SECONDS",
-    DEFAULT_LEASE_SECONDS,
-  );
-  const heartbeatSeconds = parsePositiveInt(
-    env.JOB_HEARTBEAT_SECONDS,
-    "JOB_HEARTBEAT_SECONDS",
-    DEFAULT_HEARTBEAT_SECONDS,
-  );
+  const workerConfig = resolveWorkerRuntimeConfig(env);
 
-  if (heartbeatSeconds >= leaseSeconds) {
-    throw new Error("JOB_HEARTBEAT_SECONDS must be lower than JOB_LEASE_SECONDS");
-  }
-
-  return { workerId, leaseSeconds, heartbeatSeconds };
+  return {
+    workerId: workerConfig.workerId,
+    leaseSeconds: workerConfig.leaseSeconds,
+    heartbeatSeconds: workerConfig.heartbeatSeconds,
+  };
 }
 
-function resolveWorkerTenantId(): string {
-  const value = process.env.WORKER_TENANT_ID?.trim();
-  if (!value) {
-    throw new Error(
-      "WORKER_TENANT_ID is required when PERSISTENCE_DRIVER=postgres",
-    );
-  }
-  return value;
-}
-
-export function createDefaultWorkerDeps(): InvoiceWorkerRuntimeDeps {
+export function createDefaultWorkerDeps(
+  runtimeConfig: WorkerRuntimeConfig = resolveWorkerRuntimeConfig(),
+): InvoiceWorkerRuntimeDeps {
   const opsMonitor = createInMemoryInvoiceOpsMonitor();
 
-  if (process.env.PERSISTENCE_DRIVER !== "postgres") {
+  if (runtimeConfig.persistenceDriver !== "postgres") {
     return {
       invoiceUseCases: {
         ...getSharedInvoiceUseCaseDeps(),
@@ -109,12 +70,20 @@ export function createDefaultWorkerDeps(): InvoiceWorkerRuntimeDeps {
     };
   }
 
-  const pool = createPostgresPool();
-  const tenantId = resolveWorkerTenantId();
+  const pool = createPostgresPool({
+    ...(runtimeConfig.databaseUrl
+      ? { connectionString: runtimeConfig.databaseUrl }
+      : {}),
+  });
+  const workerTenantId = runtimeConfig.workerTenantId;
+
+  if (!workerTenantId) {
+    throw new Error("WORKER_TENANT_ID is required when PERSISTENCE_DRIVER=postgres");
+  }
 
   return {
     invoiceUseCases: {
-      ...createPostgresInvoiceUseCaseDeps(pool, tenantId),
+      ...createPostgresInvoiceUseCaseDeps(pool, workerTenantId),
       jobObserver: opsMonitor.observer,
     },
     opsMonitor,

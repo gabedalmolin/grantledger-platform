@@ -21,8 +21,19 @@ import { toApiErrorResponse } from "./http/errors.js";
 import { getHeader } from "./http/headers.js";
 import type { ApiResponse, Headers } from "./http/types.js";
 
-const DEFAULT_API_HOST = "0.0.0.0";
-const DEFAULT_API_PORT = 3000;
+const DEFAULT_API_RESPONSE_HEADERS = {
+  "cache-control": "no-store",
+  "referrer-policy": "no-referrer",
+  "x-content-type-options": "nosniff",
+  "x-frame-options": "DENY",
+} as const;
+
+class PayloadTooLargeError extends Error {
+  constructor(message = "Request body exceeds configured limit") {
+    super(message);
+    this.name = "PayloadTooLargeError";
+  }
+}
 
 type ApiRouteHandler = (
   headers: Headers,
@@ -32,6 +43,7 @@ type ApiRouteHandler = (
 export interface ApiServerConfig {
   host: string;
   port: number;
+  jsonBodyLimitBytes: number;
 }
 
 export interface ApiRequestListenerDeps {
@@ -40,6 +52,7 @@ export interface ApiRequestListenerDeps {
   handleEnqueueInvoiceGeneration: ApiRouteHandler;
   handleGetInvoiceGenerationJobStatus: ApiRouteHandler;
   handleProviderWebhook: ApiRouteHandler;
+  jsonBodyLimitBytes?: number;
   readinessCheck?: () => Promise<void>;
 }
 
@@ -53,28 +66,6 @@ export interface StartedApiServer {
   server: Server;
   config: ApiServerConfig;
   close: () => Promise<void>;
-}
-
-function parsePort(raw: string | undefined): number {
-  if (!raw) {
-    return DEFAULT_API_PORT;
-  }
-
-  const value = Number.parseInt(raw, 10);
-  if (!Number.isInteger(value) || value <= 0 || value > 65535) {
-    throw new Error("API_PORT must be a valid TCP port number");
-  }
-
-  return value;
-}
-
-export function resolveApiServerConfig(
-  env: NodeJS.ProcessEnv = process.env,
-): ApiServerConfig {
-  return {
-    host: env.API_HOST?.trim() || DEFAULT_API_HOST,
-    port: parsePort(env.API_PORT),
-  };
 }
 
 function normaliseHeaders(rawHeaders: IncomingHttpHeaders): Headers {
@@ -92,11 +83,22 @@ function normaliseHeaders(rawHeaders: IncomingHttpHeaders): Headers {
   return headers;
 }
 
-async function readJsonBody(request: Parameters<RequestListener>[0]): Promise<unknown> {
+async function readJsonBody(
+  request: Parameters<RequestListener>[0],
+  maxBytes: number,
+): Promise<unknown> {
   const chunks: Buffer[] = [];
+  let totalBytes = 0;
 
   for await (const chunk of request) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    totalBytes += buffer.byteLength;
+
+    if (totalBytes > maxBytes) {
+      throw new PayloadTooLargeError();
+    }
+
+    chunks.push(buffer);
   }
 
   if (chunks.length === 0) {
@@ -117,6 +119,9 @@ async function readJsonBody(request: Parameters<RequestListener>[0]): Promise<un
 
 function sendJson(response: Parameters<RequestListener>[1], status: number, body: unknown): void {
   response.statusCode = status;
+  for (const [header, value] of Object.entries(DEFAULT_API_RESPONSE_HEADERS)) {
+    response.setHeader(header, value);
+  }
   response.setHeader("content-type", "application/json; charset=utf-8");
   response.end(JSON.stringify(body));
 }
@@ -186,6 +191,7 @@ export function createApiRequestListener(
 
       const routeHandler = pathRoutes[method];
       if (!routeHandler) {
+        response.setHeader("allow", Object.keys(pathRoutes).join(", "));
         sendJson(
           response,
           405,
@@ -198,10 +204,26 @@ export function createApiRequestListener(
         return;
       }
 
-      const payload = await readJsonBody(request);
+      const payload = await readJsonBody(
+        request,
+        deps.jsonBodyLimitBytes ?? Number.MAX_SAFE_INTEGER,
+      );
       const apiResponse = await routeHandler(headers, payload);
       sendApiResponse(response, apiResponse);
     } catch (error) {
+      if (error instanceof PayloadTooLargeError) {
+        sendJson(
+          response,
+          413,
+          buildStandardErrorBody({
+            message: error.message,
+            code: "PAYLOAD_TOO_LARGE",
+            ...(traceId ? { traceId } : {}),
+          }),
+        );
+        return;
+      }
+
       sendApiResponse(response, toApiErrorResponse(error, traceId));
     }
   };
@@ -223,22 +245,30 @@ export async function startApiServer(
   const env = input.env ?? process.env;
   const runtimeConfig = resolveApiRuntimeConfig(env);
   const resolvedConfig = {
-    ...resolveApiServerConfig(env),
+    host: runtimeConfig.host,
+    port: runtimeConfig.port,
+    jsonBodyLimitBytes: runtimeConfig.jsonBodyLimitBytes,
     ...(input.config?.host !== undefined ? { host: input.config.host } : {}),
     ...(input.config?.port !== undefined ? { port: input.config.port } : {}),
+    ...(input.config?.jsonBodyLimitBytes !== undefined
+      ? { jsonBodyLimitBytes: input.config.jsonBodyLimitBytes }
+      : {}),
   };
 
   const postgresPool =
     runtimeConfig.persistenceDriver === "postgres"
       ? createPostgresPool({
-          ...(env.DATABASE_URL?.trim()
-            ? { connectionString: env.DATABASE_URL.trim() }
+          ...(runtimeConfig.databaseUrl
+            ? { connectionString: runtimeConfig.databaseUrl }
             : {}),
         })
       : null;
 
   const apiRoot = createApiCompositionRoot({
     persistenceDriver: runtimeConfig.persistenceDriver,
+    ...(runtimeConfig.stripeWebhookSecret
+      ? { stripeWebhookSecret: runtimeConfig.stripeWebhookSecret }
+      : {}),
     ...(postgresPool ? { postgresPool } : {}),
   });
 
@@ -250,6 +280,7 @@ export async function startApiServer(
     handleGetInvoiceGenerationJobStatus:
       apiRoot.invoiceHandlers.handleGetInvoiceGenerationJobStatus,
     handleProviderWebhook: apiRoot.webhookHandlers.handleProviderWebhook,
+    jsonBodyLimitBytes: resolvedConfig.jsonBodyLimitBytes,
     readinessCheck: resolveReadinessCheck(postgresPool),
     ...input.deps,
   });
@@ -263,6 +294,7 @@ export async function startApiServer(
     payload: {
       host: resolvedConfig.host,
       port: resolvedConfig.port,
+      jsonBodyLimitBytes: resolvedConfig.jsonBodyLimitBytes,
       persistenceDriver: runtimeConfig.persistenceDriver,
     },
   });
