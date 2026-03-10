@@ -498,6 +498,7 @@ Architecture changes follow an issue-driven stream (`ARCH-*`) with mandatory doc
 - Guardrails: `docs/architecture/ARCH-GUARDRAILS.md`
 - Roadmap: `docs/architecture/IMPROVEMENT-ROADMAP.md`
 - Health check: `docs/governance/architecture-health-check.md`
+- Security operations: `docs/governance/security-operations.md`
 - Contribution guideline: `CONTRIBUTING.md`
 - PR checklist: `.github/pull_request_template.md`
 

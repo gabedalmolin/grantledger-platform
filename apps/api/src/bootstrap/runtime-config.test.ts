@@ -59,4 +59,26 @@ describe("resolveApiRuntimeConfig", () => {
       }),
     ).toThrow("API_JSON_BODY_LIMIT_BYTES must be a positive integer");
   });
+
+  it("does not leak secret values in configuration errors", () => {
+    const secret = "whsec_super_secret_value";
+
+    expect(() =>
+      resolveApiRuntimeConfig({
+        PERSISTENCE_DRIVER: "postgres",
+        STRIPE_WEBHOOK_SECRET: secret,
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        message: "DATABASE_URL is required when PERSISTENCE_DRIVER=postgres",
+      }),
+    );
+
+    expect(() =>
+      resolveApiRuntimeConfig({
+        PERSISTENCE_DRIVER: "postgres",
+        STRIPE_WEBHOOK_SECRET: secret,
+      }),
+    ).not.toThrow(secret);
+  });
 });

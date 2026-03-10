@@ -37,6 +37,106 @@ jobs:
       - name: Run production dependency audit
         run: npm audit --omit=dev --audit-level=high
 
+  container-scan:
+    name: Container Scan (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: api
+            dockerfile: apps/api/Dockerfile
+            image: grantledger-api:security
+            sarif: trivy-api.sarif
+          - target: worker
+            dockerfile: apps/worker/Dockerfile
+            image: grantledger-worker:security
+            sarif: trivy-worker.sarif
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -f ${{ matrix.dockerfile }} -t ${{ matrix.image }} .
+
+      - name: Prepare Trivy cache directory
+        run: mkdir -p "$RUNNER_TEMP/trivy-cache-${{ matrix.target }}"
+
+      - name: Scan image for high and critical vulnerabilities
+        run: >
+          docker run --rm
+          -e TRIVY_CACHE_DIR=/tmp/trivy-cache
+          -e XDG_CACHE_HOME=/tmp/trivy-cache
+          -v /var/run/docker.sock:/var/run/docker.sock
+          -v "$PWD:/workspace"
+          -v "$RUNNER_TEMP/trivy-cache-${{ matrix.target }}:/tmp/trivy-cache"
+          aquasec/trivy:0.56.1 image
+          --format sarif
+          --output "/workspace/${{ matrix.sarif }}"
+          --severity HIGH,CRITICAL
+          --pkg-types os,library
+          --ignore-unfixed
+          --exit-code 0
+          "${{ matrix.image }}"
+
+      - name: Upload Trivy SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ${{ matrix.sarif }}
+          category: trivy-${{ matrix.target }}
+
+  sbom:
+    name: SBOM (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: api
+            dockerfile: apps/api/Dockerfile
+            image: grantledger-api:security
+            artifact: sbom-api.spdx.json
+          - target: worker
+            dockerfile: apps/worker/Dockerfile
+            image: grantledger-worker:security
+            artifact: sbom-worker.spdx.json
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -f ${{ matrix.dockerfile }} -t ${{ matrix.image }} .
+
+      - name: Prepare Trivy cache directory
+        run: mkdir -p "$RUNNER_TEMP/trivy-cache-${{ matrix.target }}"
+
+      - name: Generate image SBOM
+        run: >
+          docker run --rm
+          -e TRIVY_CACHE_DIR=/tmp/trivy-cache
+          -e XDG_CACHE_HOME=/tmp/trivy-cache
+          -v /var/run/docker.sock:/var/run/docker.sock
+          -v "$PWD:/workspace"
+          -v "$RUNNER_TEMP/trivy-cache-${{ matrix.target }}:/tmp/trivy-cache"
+          aquasec/trivy:0.56.1 image
+          --format spdx-json
+          --output "/workspace/${{ matrix.artifact }}"
+          --exit-code 0
+          "${{ matrix.image }}"
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.artifact }}
+
   codeql:
     name: CodeQL
     runs-on: ubuntu-latest
