@@ -18,6 +18,7 @@
     "db:up": "docker compose up -d postgres",
     "db:down": "docker compose down",
     "db:migrate": "node ./scripts/db-migrate.mjs",
+    "selfhost:smoke": "bash ./scripts/smoke-self-hosted.sh",
     "api:dev": "npm run --workspace @grantledger/api dev",
     "api:start": "npm run --workspace @grantledger/api start",
     "worker:dev": "npm run --workspace @grantledger/worker dev",

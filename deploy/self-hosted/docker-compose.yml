@@ -1,0 +1,128 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: grantledger-selfhosted-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - grantledger_selfhosted_pg_data:/var/lib/postgresql/data
+      - ../../db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test:
+        ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  migrate:
+    image: grantledger-api:self-hosted
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["node", "scripts/db-migrate.mjs"]
+    restart: "no"
+
+  api:
+    image: grantledger-api:self-hosted
+    build:
+      context: ../..
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    init: true
+    environment:
+      NODE_ENV: production
+      PERSISTENCE_DRIVER: ${PERSISTENCE_DRIVER}
+      DATABASE_URL: ${DATABASE_URL}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+      GRANTLEDGER_VERSION: ${GRANTLEDGER_VERSION}
+      API_HOST: ${API_HOST}
+      API_PORT: ${API_PORT}
+      API_JSON_BODY_LIMIT_BYTES: ${API_JSON_BODY_LIMIT_BYTES}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "${API_HOST_PORT}:3000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/readyz"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  worker:
+    image: grantledger-worker:self-hosted
+    build:
+      context: ../..
+      dockerfile: apps/worker/Dockerfile
+    restart: unless-stopped
+    init: true
+    environment:
+      NODE_ENV: production
+      PERSISTENCE_DRIVER: ${PERSISTENCE_DRIVER}
+      DATABASE_URL: ${DATABASE_URL}
+      GRANTLEDGER_VERSION: ${GRANTLEDGER_VERSION}
+      WORKER_TENANT_ID: ${WORKER_TENANT_ID}
+      WORKER_ID: ${WORKER_ID}
+      WORKER_POLL_INTERVAL_MS: ${WORKER_POLL_INTERVAL_MS}
+      JOB_LEASE_SECONDS: ${JOB_LEASE_SECONDS}
+      JOB_HEARTBEAT_SECONDS: ${JOB_HEARTBEAT_SECONDS}
+      WORKER_METRICS_HOST: ${WORKER_METRICS_HOST}
+      WORKER_METRICS_PORT: ${WORKER_METRICS_PORT}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "${WORKER_METRICS_PORT}:${WORKER_METRICS_PORT}"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:${WORKER_METRICS_PORT}/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    container_name: grantledger-selfhosted-prometheus
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+    depends_on:
+      api:
+        condition: service_healthy
+      worker:
+        condition: service_healthy
+    ports:
+      - "${PROMETHEUS_PORT}:9090"
+    volumes:
+      - ../observability/prometheus.self-hosted.yml:/etc/prometheus/prometheus.yml:ro
+
+  grafana:
+    image: grafana/grafana:12.2.0
+    container_name: grantledger-selfhosted-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    depends_on:
+      prometheus:
+        condition: service_started
+    ports:
+      - "${GRAFANA_PORT}:3000"
+    volumes:
+      - ../observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+
+volumes:
+  grantledger_selfhosted_pg_data:
