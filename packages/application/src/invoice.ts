@@ -1,8 +1,5 @@
 import type {
-  EnqueueInvoiceGenerationPayload,
-  EnqueueInvoiceGenerationResponse,
   GenerateInvoiceForCycleInput,
-  GetInvoiceGenerationJobStatusResponse,
   Invoice,
 } from "@grantledger/contracts";
 import {
@@ -13,8 +10,8 @@ import {
   calculateInvoiceLines,
 } from "@grantledger/domain";
 import { executeIdempotent } from "./idempotency.js";
+import { enqueueInvoiceGeneration } from "./invoice/enqueue.js";
 import {
-  buildEnqueueFingerprint,
   computeNextAttemptAt,
   computeRetryDelaySeconds,
   resolveId,
@@ -22,14 +19,12 @@ import {
   stripLeaseMetadata,
 } from "./invoice/job-utils.js";
 import { notifyObserver, observerOf } from "./invoice/observer.js";
+import { getInvoiceGenerationJobStatus } from "./invoice/status.js";
 import {
   DEFAULT_LEASE_SECONDS,
-  DEFAULT_MAX_ATTEMPTS,
   InvoiceGenerationJobNotFoundError,
   InvoiceJobLeaseError,
   InvoiceJobReplayNotAllowedError,
-  type EnqueueInvoiceGenerationInput,
-  type EnqueueInvoiceGenerationResult,
   type InvoiceGenerationJob,
   type InvoiceJobLease,
   type InvoiceUseCaseDeps,
@@ -71,53 +66,7 @@ export {
   getSharedInvoiceUseCaseDeps,
 } from "./invoice/default-deps.js";
 
-export async function enqueueInvoiceGeneration(
-  deps: InvoiceUseCaseDeps,
-  input: EnqueueInvoiceGenerationInput,
-): Promise<EnqueueInvoiceGenerationResult> {
-  const observer = observerOf(deps);
-
-  const { response, replayed } = await executeIdempotent<
-    EnqueueInvoiceGenerationPayload,
-    EnqueueInvoiceGenerationResponse
-  >({
-    scope: "invoice.enqueue",
-    key: input.idempotencyKey,
-    payload: input.payload,
-    fingerprint: buildEnqueueFingerprint,
-    store: deps.enqueueIdempotencyStore,
-    ...(deps.now !== undefined ? { now: deps.now } : {}),
-    execute: async () => {
-      const createdAt = resolveNow(deps);
-      const cycleKey = buildDeterministicCycleKey(input.payload);
-      const jobId = resolveId(deps);
-      const job: InvoiceGenerationJob = {
-        id: jobId,
-        status: "queued",
-        cycleKey,
-        input: input.payload,
-        createdAt,
-        updatedAt: createdAt,
-        attemptCount: 0,
-        maxAttempts: DEFAULT_MAX_ATTEMPTS,
-        nextAttemptAt: createdAt,
-      };
-
-      await deps.invoiceJobStore.enqueue(job);
-      await notifyObserver("job_enqueued", () => observer.onJobEnqueued?.(job));
-
-      return {
-        jobId,
-        status: "queued" as const,
-      };
-    },
-  });
-
-  return {
-    ...response,
-    replayed,
-  };
-}
+export { enqueueInvoiceGeneration } from "./invoice/enqueue.js";
 
 function buildInvoice(
   deps: InvoiceUseCaseDeps,
@@ -415,25 +364,4 @@ export async function replayInvoiceGenerationJob(
   };
 }
 
-export async function getInvoiceGenerationJobStatus(
-  deps: Pick<InvoiceUseCaseDeps, "invoiceJobStore">,
-  jobId: string,
-  tenantId?: string,
-): Promise<GetInvoiceGenerationJobStatusResponse> {
-  const job = await deps.invoiceJobStore.get(jobId);
-
-  if (!job) {
-    throw new InvoiceGenerationJobNotFoundError();
-  }
-
-  if (tenantId !== undefined && job.input.tenantId !== tenantId) {
-    throw new InvoiceGenerationJobNotFoundError();
-  }
-
-  return {
-    jobId: job.id,
-    status: job.status,
-    ...(job.invoiceId !== undefined ? { invoiceId: job.invoiceId } : {}),
-    ...(job.reason !== undefined ? { reason: job.reason } : {}),
-  };
-}
+export { getInvoiceGenerationJobStatus } from "./invoice/status.js";
