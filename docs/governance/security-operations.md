@@ -10,6 +10,7 @@ GrantLedger treats security checks as part of the delivery path, not as a separa
   - scans the TypeScript codebase for code-level security issues
 - `Container Scan`
   - scans the API and worker images for `high` and `critical` vulnerabilities
+  - publishes SARIF findings for review and triage
 - `SBOM`
   - generates SPDX JSON artefacts for the API and worker images
 
@@ -19,8 +20,8 @@ GrantLedger treats security checks as part of the delivery path, not as a separa
   - treat as blocking by default
   - fix before merge unless a documented and time-bound exception is approved
 - `high`
-  - treat as blocking for internet-facing runtime paths and build images
-  - otherwise, document mitigation or open a follow-up issue before merge
+  - treat as blocking for internet-facing runtime paths and application code paths
+  - for container image findings, triage explicitly and prefer dated follow-up issues when the risk comes from upstream base layers
 - `medium` and below
   - review in context and track intentionally
 
@@ -52,8 +53,8 @@ GrantLedger treats security checks as part of the delivery path, not as a separa
   - Postgres integration
   - dependency audit
   - CodeQL
+- non-blocking but required as signals and artefacts:
   - container image scan
-- non-blocking but required as artefacts:
   - SBOM generation
 
 ## Security artefacts

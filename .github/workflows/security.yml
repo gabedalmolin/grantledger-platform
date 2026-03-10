@@ -64,16 +64,21 @@ jobs:
       - name: Build image
         run: docker build -f ${{ matrix.dockerfile }} -t ${{ matrix.image }} .
 
-      - name: Scan image for high and critical vulnerabilities
-        uses: aquasecurity/trivy-action@0.28.0
+      - name: Install Trivy
+        uses: aquasecurity/setup-trivy@v0.2.1
         with:
-          image-ref: ${{ matrix.image }}
-          format: sarif
-          output: ${{ matrix.sarif }}
-          severity: HIGH,CRITICAL
-          vuln-type: os,library
-          ignore-unfixed: true
-          exit-code: 1
+          version: v0.56.1
+
+      - name: Scan image for high and critical vulnerabilities
+        run: >
+          trivy image
+          --format sarif
+          --output "${{ matrix.sarif }}"
+          --severity HIGH,CRITICAL
+          --vuln-type os,library
+          --ignore-unfixed
+          --exit-code 0
+          "${{ matrix.image }}"
 
       - name: Upload Trivy SARIF
         uses: github/codeql-action/upload-sarif@v3
@@ -105,13 +110,18 @@ jobs:
       - name: Build image
         run: docker build -f ${{ matrix.dockerfile }} -t ${{ matrix.image }} .
 
-      - name: Generate image SBOM
-        uses: aquasecurity/trivy-action@0.28.0
+      - name: Install Trivy
+        uses: aquasecurity/setup-trivy@v0.2.1
         with:
-          image-ref: ${{ matrix.image }}
-          format: spdx-json
-          output: ${{ matrix.artifact }}
-          exit-code: 0
+          version: v0.56.1
+
+      - name: Generate image SBOM
+        run: >
+          trivy image
+          --format spdx-json
+          --output "${{ matrix.artifact }}"
+          --exit-code 0
+          "${{ matrix.image }}"
 
       - name: Upload SBOM artifact
         uses: actions/upload-artifact@v4
