@@ -15,6 +15,6 @@
     "@grantledger/domain": "0.1.0",
     "@grantledger/infra-postgres": "0.1.0",
     "@grantledger/shared": "0.1.0",
-    "stripe": "^20.4.0"
+    "stripe": "^20.4.1"
   }
 }
