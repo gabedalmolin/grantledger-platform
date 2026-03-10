@@ -424,8 +424,12 @@ Observability assets now live under `deploy/observability`:
 
 - `deploy/observability/prometheus.local.yml`
   - local Prometheus scrape configuration for API and worker metrics
+- `deploy/observability/prometheus.self-hosted.yml`
+  - self-hosted scrape configuration for the compose stack
 - `deploy/observability/grafana/dashboards/grantledger-runtime.json`
   - starter Grafana dashboard covering API and worker runtime signals
+- `deploy/observability/grafana/provisioning/`
+  - Grafana datasource and dashboard provisioning for the self-hosted stack
 
 ### Local observability path
 
@@ -442,6 +446,41 @@ Then scrape:
 - Worker metrics at `http://localhost:9464/metrics`
 
 Use the Prometheus config in `deploy/observability/prometheus.local.yml`, and import the Grafana dashboard from `deploy/observability/grafana/dashboards/grantledger-runtime.json`.
+
+## Self-Hosted Deployment Baseline
+
+GrantLedger now includes a production-like self-hosted stack under `deploy/self-hosted`.
+
+Included services:
+
+- `postgres`
+- `migrate`
+- `api`
+- `worker`
+- `prometheus`
+- `grafana`
+
+### Quick start
+
+```bash
+cp deploy/self-hosted/.env.example deploy/self-hosted/.env
+npm run selfhost:smoke
+```
+
+The smoke path will:
+
+- build the API and worker images
+- boot the full self-hosted stack
+- wait for database, API, worker, Prometheus, and Grafana readiness
+- verify key metrics are exposed
+- fail non-zero if the stack is unhealthy
+
+### Important deployment notes
+
+- The root `docker-compose.yml` remains the local development baseline for Postgres only.
+- The self-hosted stack is intentionally isolated under `deploy/self-hosted` so development and production-like validation stay separate.
+- The self-hosted stack uses isolated defaults (`API_PORT=3000`, `API_HOST_PORT=13000`, `POSTGRES_PORT=15432`, `WORKER_METRICS_PORT=19464`, `PROMETHEUS_PORT=19090`, `GRAFANA_PORT=13001`) to avoid clashing with local development services.
+- CI now builds both Docker runtime images, while the full self-hosted smoke path remains a documented manual validation step.
 
 ## Governance and Architecture Discipline
 

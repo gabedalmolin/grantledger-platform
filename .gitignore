@@ -17,3 +17,5 @@ coverage/
 **/.turbo/
 .cache/
 **/.cache/
+
+deploy/self-hosted/.env
