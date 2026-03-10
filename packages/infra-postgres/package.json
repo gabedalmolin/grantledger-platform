@@ -12,9 +12,9 @@
   "dependencies": {
     "@grantledger/application": "0.1.0",
     "@grantledger/contracts": "0.1.0",
-    "pg": "^8.16.3"
+    "pg": "^8.20.0"
   },
   "devDependencies": {
-    "@types/pg": "^8.15.6"
+    "@types/pg": "^8.18.0"
   }
 }
