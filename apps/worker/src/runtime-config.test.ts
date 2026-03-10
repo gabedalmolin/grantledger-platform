@@ -59,4 +59,27 @@ describe("resolveWorkerRuntimeConfig", () => {
       }),
     ).toThrow("WORKER_METRICS_PORT must be a valid TCP port number");
   });
+
+  it("does not leak database connection strings in configuration errors", () => {
+    const databaseUrl =
+      "postgresql://grantledger_app:grantledger_secret@localhost:5432/grantledger";
+
+    expect(() =>
+      resolveWorkerRuntimeConfig({
+        PERSISTENCE_DRIVER: "postgres",
+        DATABASE_URL: databaseUrl,
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        message: "WORKER_TENANT_ID is required when PERSISTENCE_DRIVER=postgres",
+      }),
+    );
+
+    expect(() =>
+      resolveWorkerRuntimeConfig({
+        PERSISTENCE_DRIVER: "postgres",
+        DATABASE_URL: databaseUrl,
+      }),
+    ).not.toThrow(databaseUrl);
+  });
 });
