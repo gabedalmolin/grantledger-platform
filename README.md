@@ -69,11 +69,12 @@ GrantLedger aims to give product and engineering teams confidence that billing b
 
 ## At a Glance
 
-> Current state on `main`: architecture hardening baseline is complete through `ARCH-024`, and API runtime wiring is now modularised across `subscription`, `invoice`, and `webhook` bootstrap paths.
+> Current state on `main`: architecture hardening baseline is complete through `ARCH-028`, with modular API runtime wiring, direct boundary coverage for bootstrap/domain/contracts, and an executable runtime baseline for both the API and worker.
 
 - domain rules remain pure and deterministic;
 - application use cases orchestrate idempotency, retries, replay, and audit flow;
 - API and worker layers adapt transport concerns without leaking business logic;
+- API and worker now have minimal executable runtime entrypoints for production-like local validation;
 - contracts are schema-first at the boundaries;
 - Postgres-backed durable paths are validated separately through dedicated integration checks;
 - architecture changes are tracked through ADRs and `ARCH-*` delivery streams.
@@ -262,6 +263,28 @@ npm run build
 npm run test
 ```
 
+### Run the API locally
+
+```bash
+PERSISTENCE_DRIVER=memory npm run api:dev
+```
+
+The API host exposes:
+
+- `GET /healthz`
+- `GET /readyz`
+- `POST /v1/auth/subscriptions`
+- `POST /v1/checkout/sessions`
+- `POST /v1/invoices/generation`
+- `POST /v1/invoices/generation/status`
+- `POST /v1/webhooks/provider`
+
+### Run the worker locally
+
+```bash
+PERSISTENCE_DRIVER=memory npm run worker:dev
+```
+
 ### Full validation before opening or updating a PR
 
 ```bash
@@ -294,6 +317,76 @@ bash ./scripts/delivery-closeout.sh --pr <PR_NUMBER>
 ```
 
 Use `--issue <ISSUE_NUMBER>` when the PR body does not contain `Closes #N`.
+
+## Runtime Baseline
+
+GrantLedger now includes a minimal executable runtime baseline for both primary applications:
+
+- `apps/api/src/server.ts`
+  - a thin Node HTTP host around the existing API handlers
+  - includes `healthz` and `readyz`
+  - reuses the same Postgres pool for request handling and readiness checks when `PERSISTENCE_DRIVER=postgres`
+- `apps/worker/src/main.ts`
+  - a long-running worker process around `runInvoiceWorkerOnce`
+  - supports configurable polling through `WORKER_POLL_INTERVAL_MS`
+
+### Environment contract
+
+#### API
+
+- `API_HOST`
+  - optional
+  - defaults to `0.0.0.0`
+- `API_PORT`
+  - optional
+  - defaults to `3000`
+- `PERSISTENCE_DRIVER`
+  - optional
+  - `memory` by default
+  - `postgres` requires `DATABASE_URL`
+- `DATABASE_URL`
+  - required when `PERSISTENCE_DRIVER=postgres`
+- `STRIPE_WEBHOOK_SECRET`
+  - required only when processing Stripe webhooks through the runtime host
+
+#### Worker
+
+- `PERSISTENCE_DRIVER`
+  - optional
+  - `memory` by default
+  - `postgres` requires `DATABASE_URL`
+- `DATABASE_URL`
+  - required when `PERSISTENCE_DRIVER=postgres`
+- `WORKER_TENANT_ID`
+  - required when `PERSISTENCE_DRIVER=postgres`
+- `WORKER_ID`
+  - optional stable worker identifier override
+- `JOB_LEASE_SECONDS`
+  - optional
+  - defaults to `30`
+- `JOB_HEARTBEAT_SECONDS`
+  - optional
+  - defaults to `10`
+- `WORKER_POLL_INTERVAL_MS`
+  - optional
+  - defaults to `1000`
+
+### Production-like local validation
+
+Build and run the applications directly:
+
+```bash
+npm run build
+PERSISTENCE_DRIVER=memory npm run api:start
+PERSISTENCE_DRIVER=memory npm run worker:start
+```
+
+Or build container images:
+
+```bash
+docker build -f apps/api/Dockerfile -t grantledger-api .
+docker build -f apps/worker/Dockerfile -t grantledger-worker .
+```
 
 ## Governance and Architecture Discipline
 
@@ -330,7 +423,7 @@ Architecture changes follow an issue-driven stream (`ARCH-*`) with mandatory doc
 ## Project Links
 
 - Repository: [gabedalmolin/grantledger-platform](https://github.com/gabedalmolin/grantledger-platform)
-- Project board: [GitHub Project #6](https://github.com/users/john-dalmolin/projects/6)
+- Project board: [GitHub Project #6](https://github.com/users/gabedalmolin/projects/6)
 
 ## Acknowledgements
 

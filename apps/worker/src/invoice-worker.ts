@@ -19,6 +19,10 @@ export interface InvoiceWorkerDeps {
   opsMonitor?: InvoiceOpsMonitor;
 }
 
+export interface InvoiceWorkerRuntimeDeps extends InvoiceWorkerDeps {
+  close?: () => Promise<void>;
+}
+
 export interface RunInvoiceWorkerOnceResult {
   status: "processed" | "idle" | "failed";
   jobId?: string;
@@ -92,7 +96,7 @@ function resolveWorkerTenantId(): string {
   return value;
 }
 
-function createDefaultWorkerDeps(): InvoiceWorkerDeps {
+export function createDefaultWorkerDeps(): InvoiceWorkerRuntimeDeps {
   const opsMonitor = createInMemoryInvoiceOpsMonitor();
 
   if (process.env.PERSISTENCE_DRIVER !== "postgres") {
@@ -114,6 +118,9 @@ function createDefaultWorkerDeps(): InvoiceWorkerDeps {
       jobObserver: opsMonitor.observer,
     },
     opsMonitor,
+    close: async () => {
+      await pool.end();
+    },
   };
 }
 
@@ -121,10 +128,18 @@ function resolveSnapshot(deps: InvoiceWorkerDeps): InvoiceOpsSnapshot {
   return deps.opsMonitor?.snapshot() ?? EMPTY_SNAPSHOT;
 }
 
-const defaultWorkerDeps: InvoiceWorkerDeps = createDefaultWorkerDeps();
+let defaultWorkerDeps: InvoiceWorkerRuntimeDeps | undefined;
+
+function resolveDefaultWorkerDeps(): InvoiceWorkerRuntimeDeps {
+  if (!defaultWorkerDeps) {
+    defaultWorkerDeps = createDefaultWorkerDeps();
+  }
+
+  return defaultWorkerDeps;
+}
 
 export async function runInvoiceWorkerOnce(
-  deps: InvoiceWorkerDeps = defaultWorkerDeps,
+  deps: InvoiceWorkerDeps = resolveDefaultWorkerDeps(),
 ): Promise<RunInvoiceWorkerOnceResult> {
   const startedAt = Date.now();
   const runtimeConfig = resolveInvoiceWorkerRuntimeConfig();

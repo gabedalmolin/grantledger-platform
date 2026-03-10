@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "tsc -b",
+    "dev": "tsx watch src/main.ts",
+    "start": "node dist/main.js",
     "test": "vitest run --root ../../ --config vitest.config.ts --passWithNoTests apps/worker/src"
   },
   "dependencies": {

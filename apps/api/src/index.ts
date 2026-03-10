@@ -2,6 +2,7 @@ import { createApiCompositionRoot } from "./bootstrap/composition-root.js";
 import { validateApiRuntimeConfig } from "./bootstrap/runtime-config.js";
 
 export { createApiCompositionRoot } from "./bootstrap/composition-root.js";
+export * from "./server.js";
 export * from "./handlers/auth.js";
 export * from "./handlers/checkout.js";
 export {
