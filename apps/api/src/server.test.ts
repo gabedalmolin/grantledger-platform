@@ -61,6 +61,8 @@ describe("createApiRequestListener", () => {
       const response = await fetch(`${baseUrl}/healthz`);
 
       expect(response.status).toBe(200);
+      expect(response.headers.get("cache-control")).toBe("no-store");
+      expect(response.headers.get("x-content-type-options")).toBe("nosniff");
       await expect(response.json()).resolves.toEqual({ status: "ok" });
     });
   });
@@ -140,6 +142,40 @@ describe("createApiRequestListener", () => {
         message: "Invalid JSON body",
         code: "BAD_REQUEST",
         traceId: "trace_invalid_json",
+      });
+    });
+  });
+
+  it("rejects oversized JSON request bodies deterministically", async () => {
+    const handleStartCheckout = vi.fn(async () => ({
+      status: 201,
+      body: { ok: true },
+    }));
+
+    const listener = createStubListener({
+      handleStartCheckout,
+      jsonBodyLimitBytes: 16,
+    });
+
+    await withServer(listener, async (baseUrl) => {
+      const response = await fetch(`${baseUrl}/v1/checkout/sessions`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-trace-id": "trace_too_large",
+        },
+        body: JSON.stringify({
+          planId: "plan_basic",
+          billingPeriod: "monthly",
+        }),
+      });
+
+      expect(response.status).toBe(413);
+      expect(handleStartCheckout).not.toHaveBeenCalled();
+      await expect(response.json()).resolves.toMatchObject({
+        message: "Request body exceeds configured limit",
+        code: "PAYLOAD_TOO_LARGE",
+        traceId: "trace_too_large",
       });
     });
   });
