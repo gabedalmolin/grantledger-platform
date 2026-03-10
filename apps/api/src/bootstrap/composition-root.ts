@@ -79,6 +79,7 @@ export interface ApiCompositionRootDeps {
   subscriptionUseCasesByTenant?: (tenantId: string) => SubscriptionUseCaseDeps;
   persistenceDriver?: "memory" | "postgres";
   postgresPool?: Pool;
+  stripeWebhookSecret?: string;
 }
 
 export interface ApiCompositionRoot extends SubscriptionHandlers {
@@ -168,8 +169,8 @@ export function createApiCompositionRoot(
           ? { webhookHandlerDeps: deps.webhookHandlerDeps }
           : {}),
         ...(pool ? { postgresPool: pool } : {}),
-        ...(process.env.STRIPE_WEBHOOK_SECRET
-          ? { stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET }
+        ...(deps.stripeWebhookSecret
+          ? { stripeWebhookSecret: deps.stripeWebhookSecret }
           : {}),
       }),
     );
