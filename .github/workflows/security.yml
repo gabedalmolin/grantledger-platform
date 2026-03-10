@@ -64,17 +64,23 @@ jobs:
       - name: Build image
         run: docker build -f ${{ matrix.dockerfile }} -t ${{ matrix.image }} .
 
+      - name: Prepare Trivy cache directory
+        run: mkdir -p "$RUNNER_TEMP/trivy-cache-${{ matrix.target }}"
+
       - name: Scan image for high and critical vulnerabilities
         run: >
           docker run --rm
           --user "$(id -u):$(id -g)"
+          -e TRIVY_CACHE_DIR=/tmp/trivy-cache
+          -e XDG_CACHE_HOME=/tmp/trivy-cache
           -v /var/run/docker.sock:/var/run/docker.sock
           -v "$PWD:/workspace"
+          -v "$RUNNER_TEMP/trivy-cache-${{ matrix.target }}:/tmp/trivy-cache"
           aquasec/trivy:0.56.1 image
           --format sarif
           --output "/workspace/${{ matrix.sarif }}"
           --severity HIGH,CRITICAL
-          --vuln-type os,library
+          --pkg-types os,library
           --ignore-unfixed
           --exit-code 0
           "${{ matrix.image }}"
@@ -109,12 +115,18 @@ jobs:
       - name: Build image
         run: docker build -f ${{ matrix.dockerfile }} -t ${{ matrix.image }} .
 
+      - name: Prepare Trivy cache directory
+        run: mkdir -p "$RUNNER_TEMP/trivy-cache-${{ matrix.target }}"
+
       - name: Generate image SBOM
         run: >
           docker run --rm
           --user "$(id -u):$(id -g)"
+          -e TRIVY_CACHE_DIR=/tmp/trivy-cache
+          -e XDG_CACHE_HOME=/tmp/trivy-cache
           -v /var/run/docker.sock:/var/run/docker.sock
           -v "$PWD:/workspace"
+          -v "$RUNNER_TEMP/trivy-cache-${{ matrix.target }}:/tmp/trivy-cache"
           aquasec/trivy:0.56.1 image
           --format spdx-json
           --output "/workspace/${{ matrix.artifact }}"
