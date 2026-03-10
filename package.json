@@ -12,7 +12,7 @@
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc -b",
     "test:watch": "vitest",
-    "quality:gate": "npm run lint && npm run build && npm run openapi:check && npm run test:coverage",
+    "quality:gate": "npm run lint && npm run build && npm run openapi:check && npm run test:demo && npm run test:coverage",
     "test:workspaces": "npm run --workspaces --if-present test",
     "test:pg": "node ./scripts/verify-pg-test-env.mjs && RUN_PG_TESTS=1 vitest run packages/infra-postgres/src",
     "db:up": "docker compose up -d postgres",
@@ -26,7 +26,10 @@
     "openapi:generate": "tsx ./scripts/generate-openapi.ts",
     "openapi:validate": "redocly lint docs/openapi/openapi.json --config  .redocly.yaml",
     "openapi:drift:check": "git diff --exit-code -- docs/openapi/openapi.json",
-    "openapi:check": "npm run openapi:generate && npm run openapi:validate && npm run openapi:drift:check"
+    "openapi:check": "npm run openapi:generate && npm run openapi:validate && npm run openapi:drift:check",
+    "demo:seed": "tsx ./scripts/demo-seed.ts",
+    "demo:selfhost": "tsx ./scripts/demo-self-hosted.ts",
+    "test:demo": "vitest run --config vitest.scripts.config.ts"
   },
   "packageManager": "npm@10.9.2",
   "engines": {

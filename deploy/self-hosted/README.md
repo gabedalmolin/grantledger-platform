@@ -32,4 +32,15 @@ npm run selfhost:smoke
 
 - The root `docker-compose.yml` remains the local development baseline for Postgres only.
 - This stack is intentionally separate so local development and production-like validation do not fight each other.
-- Grafana is exposed on port `3001` by default to avoid clashing with the API runtime.
+- Grafana is exposed on port `13001` by default to avoid clashing with the API runtime.
+
+
+## Guided demo
+
+After the stack is up, you can run the guided billing walkthrough from the repository root:
+
+```bash
+npm run demo:selfhost
+```
+
+For a step-by-step explanation, see `docs/demo/guided-billing-walkthrough.md`.
