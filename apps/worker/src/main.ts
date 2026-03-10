@@ -1,5 +1,10 @@
 import { pathToFileURL } from "node:url";
-import { emitStructuredLog } from "@grantledger/shared";
+import {
+  configureStructuredLogging,
+  emitStructuredLog,
+  resolveServiceObservabilityContext,
+} from "@grantledger/shared";
+import type { InvoiceOpsSnapshot } from "@grantledger/application";
 
 import {
   createDefaultWorkerDeps,
@@ -7,6 +12,11 @@ import {
   type InvoiceWorkerRuntimeDeps,
   type RunInvoiceWorkerOnceResult,
 } from "./invoice-worker.js";
+import {
+  getWorkerMetrics,
+  recordWorkerCycleMetric,
+} from "./metrics.js";
+import { startWorkerMetricsServer } from "./metrics-server.js";
 import { resolveWorkerRuntimeConfig } from "./runtime-config.js";
 
 export interface InvoiceWorkerProcessConfig {
@@ -82,7 +92,16 @@ function isMainModule(moduleUrl: string): boolean {
 
 async function runWorkerAsMain(): Promise<void> {
   const config = resolveWorkerRuntimeConfig();
+  configureStructuredLogging(resolveServiceObservabilityContext("worker"));
   const deps = createDefaultWorkerDeps(config);
+  const metrics = getWorkerMetrics();
+  const metricsServer = await startWorkerMetricsServer({
+    metrics,
+    config: {
+      host: config.metricsHost,
+      port: config.metricsPort,
+    },
+  });
   const controller = new AbortController();
   let stopping = false;
   let closed = false;
@@ -93,6 +112,8 @@ async function runWorkerAsMain(): Promise<void> {
     }
 
     closed = true;
+    metrics.upState.set(0);
+    await metricsServer.close();
     await deps.close?.();
   };
 
@@ -123,12 +144,37 @@ async function runWorkerAsMain(): Promise<void> {
     payload: {
       pollIntervalMs: config.pollIntervalMs,
       persistenceDriver: config.persistenceDriver,
+      metricsHost: config.metricsHost,
+      metricsPort: config.metricsPort,
     },
   });
 
   try {
+    const runCycle = async (): Promise<RunInvoiceWorkerOnceResult> => {
+      const startedAt = process.hrtime.bigint();
+      const result = await runInvoiceWorkerOnce(deps);
+      const snapshot: InvoiceOpsSnapshot = deps.opsMonitor?.snapshot() ?? {
+        queueDepth: 0,
+        processingCount: 0,
+        completedCount: 0,
+        retryScheduledCount: 0,
+        deadLetterCount: 0,
+        terminalFailureRate: 0,
+      };
+
+      recordWorkerCycleMetric(metrics, {
+        result,
+        durationSeconds:
+          Number(process.hrtime.bigint() - startedAt) / 1_000_000_000,
+        snapshot,
+      });
+
+      return result;
+    };
+
     await runInvoiceWorkerProcess({
       deps,
+      runCycle,
       signal: controller.signal,
     });
   } finally {

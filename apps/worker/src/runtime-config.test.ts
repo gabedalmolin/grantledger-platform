@@ -11,6 +11,8 @@ describe("resolveWorkerRuntimeConfig", () => {
       pollIntervalMs: 1000,
       leaseSeconds: 30,
       heartbeatSeconds: 10,
+      metricsHost: "0.0.0.0",
+      metricsPort: 9464,
     });
     expect(config.workerId.length).toBeGreaterThan(0);
   });
@@ -48,5 +50,13 @@ describe("resolveWorkerRuntimeConfig", () => {
         JOB_HEARTBEAT_SECONDS: "10",
       }),
     ).toThrow("JOB_HEARTBEAT_SECONDS must be lower than JOB_LEASE_SECONDS");
+  });
+
+  it("throws when the worker metrics port is invalid", () => {
+    expect(() =>
+      resolveWorkerRuntimeConfig({
+        WORKER_METRICS_PORT: "70000",
+      }),
+    ).toThrow("WORKER_METRICS_PORT must be a valid TCP port number");
   });
 });
