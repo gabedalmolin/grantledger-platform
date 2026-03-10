@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import type {
   EnqueueInvoiceGenerationPayload,
   EnqueueInvoiceGenerationResponse,
@@ -6,7 +5,6 @@ import type {
   GetInvoiceGenerationJobStatusResponse,
   Invoice,
   InvoiceAuditEvent,
-  InvoiceGenerationJobStatus,
 } from "@grantledger/contracts";
 import {
   assertInvoiceTotalDerivedFromLines,
@@ -18,260 +16,66 @@ import {
 import {
   addSecondsToIso,
   emitStructuredLog,
-  hashPayload,
   parseIsoToEpochMillis,
   utcNowIso,
 } from "@grantledger/shared";
 import {
   createInMemoryAsyncIdempotencyStore,
   executeIdempotent,
-  type AsyncIdempotencyStore,
 } from "./idempotency.js";
-import { ConflictError, NotFoundError } from "./errors.js";
+import {
+  buildEnqueueFingerprint,
+  cloneJob,
+  computeNextAttemptAt,
+  computeRetryDelaySeconds,
+  requireJob,
+  resolveId,
+  resolveNow,
+  stripLeaseMetadata,
+} from "./invoice/job-utils.js";
+import { notifyObserver, observerOf } from "./invoice/observer.js";
+import {
+  DEFAULT_LEASE_SECONDS,
+  DEFAULT_MAX_ATTEMPTS,
+  InvoiceGenerationJobNotFoundError,
+  InvoiceJobLeaseError,
+  InvoiceJobReplayNotAllowedError,
+  type EnqueueInvoiceGenerationInput,
+  type EnqueueInvoiceGenerationResult,
+  type InvoiceAuditLogger,
+  type InvoiceGenerationJob,
+  type InvoiceJobClaimInput,
+  type InvoiceJobLease,
+  type InvoiceJobStore,
+  type InvoiceRepository,
+  type InvoiceUseCaseDeps,
+  type ProcessNextInvoiceGenerationJobInput,
+  type ProcessNextInvoiceGenerationJobResult,
+  type ReplayInvoiceGenerationJobInput,
+  type ReplayInvoiceGenerationJobResult,
+} from "./invoice/types.js";
 
-export interface InvoiceRepository {
-  findByCycleKey(cycleKey: string): Promise<Invoice | null>;
-  save(invoice: Invoice, cycleKey: string): Promise<void>;
-}
-
-export interface InvoiceAuditLogger {
-  log(event: InvoiceAuditEvent): Promise<void>;
-}
-
-export interface InvoiceGenerationJob {
-  id: string;
-  status: InvoiceGenerationJobStatus;
-  cycleKey: string;
-  input: GenerateInvoiceForCycleInput;
-  createdAt: string;
-  updatedAt: string;
-  invoiceId?: string;
-  reason?: string;
-  attemptCount: number;
-  maxAttempts: number;
-  nextAttemptAt: string;
-  lastError?: string;
-  deadLetteredAt?: string;
-  replayOfJobId?: string;
-  replayReason?: string;
-  leaseOwner?: string;
-  leaseToken?: string;
-  leaseExpiresAt?: string;
-}
-
-export interface InvoiceJobLease {
-  workerId: string;
-  leaseToken: string;
-}
-
-export interface InvoiceJobClaimInput extends InvoiceJobLease {
-  leaseSeconds: number;
-}
-
-export interface InvoiceJobStore {
-  enqueue(job: InvoiceGenerationJob): Promise<void>;
-  claimNext(input: InvoiceJobClaimInput): Promise<InvoiceGenerationJob | null>;
-  renewLease(
-    jobId: string,
-    lease: InvoiceJobLease,
-    leaseSeconds: number,
-  ): Promise<void>;
-  get(jobId: string): Promise<InvoiceGenerationJob | null>;
-  markCompleted(
-    jobId: string,
-    invoiceId: string,
-    lease: InvoiceJobLease,
-  ): Promise<void>;
-  markRetry(
-    jobId: string,
-    reason: string,
-    nextAttemptAt: string,
-    attemptCount: number,
-    lease: InvoiceJobLease,
-  ): Promise<void>;
-  markDeadLetter(
-    jobId: string,
-    reason: string,
-    lease: InvoiceJobLease,
-  ): Promise<void>;
-}
-
-
-export interface InvoiceJobObserver {
-  onJobClaimed?(job: InvoiceGenerationJob): Promise<void> | void;
-  onJobCompleted?(
-    job: InvoiceGenerationJob,
-    invoiceId: string,
-  ): Promise<void> | void;
-  onJobRetryScheduled?(
-    job: InvoiceGenerationJob,
-    reason: string,
-    nextAttemptAt: string,
-    attemptCount: number,
-  ): Promise<void> | void;
-  onJobDeadLettered?(
-    job: InvoiceGenerationJob,
-    reason: string,
-  ): Promise<void> | void;
-  onJobEnqueued?(job: InvoiceGenerationJob): Promise<void> | void;
-}
-
-export interface ReplayInvoiceGenerationJobInput {
-  jobId: string;
-  reason?: string;
-}
-
-export type ReplayInvoiceGenerationJobResult =
-  | { status: "replayed"; jobId: string; replayOfJobId: string }
-  | { status: "skipped_already_completed"; jobId: string; invoiceId: string };
-
-const DEFAULT_MAX_ATTEMPTS = 3;
-const DEFAULT_LEASE_SECONDS = 30;
-const noopInvoiceJobObserver: InvoiceJobObserver = {};
-
-function observerOf(
-  deps: Pick<InvoiceUseCaseDeps, "jobObserver">,
-): InvoiceJobObserver {
-  return deps.jobObserver ?? noopInvoiceJobObserver;
-}
-
-async function notifyObserver(
-  event: string,
-  callback: () => Promise<void> | void,
-): Promise<void> {
-  try {
-    await callback();
-  } catch (error) {
-    const reason =
-      error instanceof Error ? error.message : "Unexpected observer failure";
-
-    emitStructuredLog({
-      level: "warn",
-      type: "invoice_job_observer_error",
-      payload: {
-        event,
-        reason,
-      },
-    });
-  }
-}
-
-export interface InvoiceUseCaseDeps {
-  invoiceRepository: InvoiceRepository;
-  invoiceAuditLogger: InvoiceAuditLogger;
-  invoiceJobStore: InvoiceJobStore;
-  jobObserver?: InvoiceJobObserver;
-  enqueueIdempotencyStore: AsyncIdempotencyStore<EnqueueInvoiceGenerationResponse>;
-  processIdempotencyStore: AsyncIdempotencyStore<{ invoiceId: string }>;
-  now?: () => string;
-  generateId?: () => string;
-}
-
-export interface EnqueueInvoiceGenerationInput {
-  idempotencyKey: string | null;
-  payload: EnqueueInvoiceGenerationPayload;
-}
-
-export interface EnqueueInvoiceGenerationResult extends EnqueueInvoiceGenerationResponse {
-  replayed: boolean;
-}
-
-export interface ProcessNextInvoiceGenerationJobInput {
-  lease?: InvoiceJobClaimInput;
-  heartbeatSeconds?: number;
-}
-
-export type ProcessNextInvoiceGenerationJobResult =
-  | { status: "no_job" }
-  | { status: "processed"; jobId: string; invoiceId: string }
-  | {
-      status: "retry_scheduled";
-      jobId: string;
-      reason: string;
-      nextAttemptAt: string;
-    }
-  | { status: "failed"; jobId: string; reason: string };
-
-export class InvoiceGenerationJobNotFoundError extends NotFoundError {
-  constructor(message = "Invoice generation job not found") {
-    super(message);
-  }
-}
-
-export class InvoiceJobReplayNotAllowedError extends ConflictError {
-  constructor(message = "Only failed jobs can be replayed") {
-    super(message);
-  }
-}
-
-export class InvoiceJobLeaseError extends ConflictError {
-  constructor(message = "Invoice job lease is no longer owned by this worker") {
-    super(message);
-  }
-}
-
-function resolveNow(deps: Pick<InvoiceUseCaseDeps, "now">): string {
-  return (deps.now ?? utcNowIso)();
-}
-
-function resolveId(deps: Pick<InvoiceUseCaseDeps, "generateId">): string {
-  return (deps.generateId ?? randomUUID)();
-}
-
-function computeRetryDelaySeconds(attemptCount: number): number {
-  return Math.min(2 ** attemptCount, 60);
-}
-
-function computeNextAttemptAt(nowIso: string, delaySeconds: number): string {
-  return addSecondsToIso(nowIso, delaySeconds);
-}
-
-function buildEnqueueFingerprint(
-  payload: EnqueueInvoiceGenerationPayload | undefined,
-): string {
-  if (!payload) {
-    return hashPayload(null);
-  }
-
-  const cycleKey = buildDeterministicCycleKey(payload);
-  const { traceId: _traceId, ...stableInput } = payload;
-  void _traceId;
-
-  const inputHash = hashPayload(stableInput);
-  return hashPayload({ cycleKey, inputHash });
-}
-
-function cloneJob(job: InvoiceGenerationJob): InvoiceGenerationJob {
-  return {
-    ...job,
-    input: { ...job.input },
-  };
-}
-
-function stripLeaseMetadata(job: InvoiceGenerationJob): InvoiceGenerationJob {
-  const {
-    leaseOwner: _leaseOwner,
-    leaseToken: _leaseToken,
-    leaseExpiresAt: _leaseExpiresAt,
-    ...withoutLease
-  } = job;
-
-  void _leaseOwner;
-  void _leaseToken;
-  void _leaseExpiresAt;
-  return withoutLease;
-}
-
-function requireJob(
-  store: Map<string, InvoiceGenerationJob>,
-  jobId: string,
-): InvoiceGenerationJob {
-  const job = store.get(jobId);
-  if (!job) {
-    throw new InvoiceGenerationJobNotFoundError();
-  }
-  return job;
-}
+export {
+  InvoiceGenerationJobNotFoundError,
+  InvoiceJobLeaseError,
+  InvoiceJobReplayNotAllowedError,
+} from "./invoice/types.js";
+export type {
+  EnqueueInvoiceGenerationInput,
+  EnqueueInvoiceGenerationResult,
+  InvoiceAuditLogger,
+  InvoiceGenerationJob,
+  InvoiceJobClaimInput,
+  InvoiceJobLease,
+  InvoiceJobObserver,
+  InvoiceJobStore,
+  InvoiceRepository,
+  InvoiceUseCaseDeps,
+  ProcessNextInvoiceGenerationJobInput,
+  ProcessNextInvoiceGenerationJobResult,
+  ReplayInvoiceGenerationJobInput,
+  ReplayInvoiceGenerationJobResult,
+} from "./invoice/types.js";
 
 export function createInMemoryInvoiceRepository(): InvoiceRepository {
   const byCycleKey = new Map<string, Invoice>();
