@@ -1,6 +1,15 @@
 # GrantLedger Platform
 
-[![CI](https://github.com/gabedalmolin/grantledger-platform/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/gabedalmolin/grantledger-platform/actions/workflows/ci.yml)
+[![CI](https://img.shields.io/github/actions/workflow/status/gabedalmolin/grantledger-platform/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/gabedalmolin/grantledger-platform/actions/workflows/ci.yml)
+[![Security](https://img.shields.io/github/actions/workflow/status/gabedalmolin/grantledger-platform/security.yml?branch=main&style=flat-square&label=Security)](https://github.com/gabedalmolin/grantledger-platform/actions/workflows/security.yml)
+[![Self-hosted Ready](https://img.shields.io/badge/self--hosted-ready-0f766e?style=flat-square)](./deploy/self-hosted/README.md)
+[![Guided Demo](https://img.shields.io/badge/demo-guided-2563eb?style=flat-square)](./docs/demo/guided-billing-walkthrough.md)
+[![OpenAPI](https://img.shields.io/badge/OpenAPI-schema--first-6BA539?style=flat-square&logo=openapiinitiative&logoColor=white)](./docs/openapi/openapi.json)
+[![TypeScript Strict](https://img.shields.io/badge/TypeScript-strict-3178C6?style=flat-square&logo=typescript&logoColor=white)](./tsconfig.json)
+
+<p align="center">
+  <img alt="GrantLedger - Change-safe billing infrastructure" src="docs/assets/branding/approved/grantledger-hero-change-safe-billing-dark.png" width="920">
+</p>
 
 GrantLedger is a multi-tenant SaaS billing platform built to make change-safe billing workflows easier to reason about, validate, and evolve.
 
