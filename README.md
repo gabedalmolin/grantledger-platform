@@ -1,19 +1,25 @@
 # GrantLedger Platform
 
-[![CI](https://img.shields.io/github/actions/workflow/status/gabedalmolin/grantledger-platform/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/gabedalmolin/grantledger-platform/actions/workflows/ci.yml)
-[![Security](https://img.shields.io/github/actions/workflow/status/gabedalmolin/grantledger-platform/security.yml?branch=main&style=flat-square&label=Security)](https://github.com/gabedalmolin/grantledger-platform/actions/workflows/security.yml)
-[![Self-hosted Ready](https://img.shields.io/badge/self--hosted-ready-0f766e?style=flat-square)](./deploy/self-hosted/README.md)
-[![Guided Demo](https://img.shields.io/badge/demo-guided-2563eb?style=flat-square)](./docs/demo/guided-billing-walkthrough.md)
-[![OpenAPI](https://img.shields.io/badge/OpenAPI-schema--first-6BA539?style=flat-square&logo=openapiinitiative&logoColor=white)](./docs/openapi/openapi.json)
-[![TypeScript Strict](https://img.shields.io/badge/TypeScript-strict-3178C6?style=flat-square&logo=typescript&logoColor=white)](./tsconfig.json)
-
 <p align="center">
-  <img alt="GrantLedger - Change-safe billing infrastructure" src="docs/assets/branding/approved/grantledger-hero-shield-change-safe-billing-dark.png" width="920">
+  <img alt="GrantLedger - Operational trust at scale" src="docs/assets/branding/approved/grantledger-hero-shield-operational-trust-dark.png" width="920">
 </p>
 
-GrantLedger is a multi-tenant SaaS billing platform built to make change-safe billing workflows easier to reason about, validate, and evolve.
+Change-safe billing infrastructure for multi-tenant SaaS systems.
 
-It focuses on the parts of billing systems that usually become brittle first: idempotent writes, webhook replay handling, asynchronous invoice processing, explicit boundary contracts, and architectural discipline across transport, application, and domain layers.
+GrantLedger is a multi-tenant SaaS billing platform built around correctness, explicit contracts, and operational resilience.
+
+It is designed for billing workflows where idempotency, replay handling, asynchronous orchestration, and boundary clarity are non-negotiable.
+
+## Platform Baseline
+
+> Current state on `main`: the platform baseline is complete through `ARCH-033`, including runtime security and environment contracts, API and worker metrics, a self-hosted deployment stack with smoke validation, a guided demo scenario, and a supply-chain security baseline with container scanning and SBOM generation.
+
+- schema-first contracts at the boundary;
+- idempotent write flows and replay-safe webhook handling;
+- executable API and worker runtimes with health, readiness, and metrics;
+- self-hosted deployment validation with Prometheus and Grafana support;
+- guided demo coverage for end-to-end local validation;
+- CI and security automation with image scanning, SBOM generation, and CodeQL.
 
 ## Quick Start
 
@@ -61,7 +67,7 @@ DATABASE_URL='postgresql://grantledger_app:grantledger_app@localhost:5432/grantl
 
 If your local `grantledger-postgres` volume already exists, recreate it once so that initialisation scripts from `db/init` are applied cleanly.
 
-## Why This Project Exists
+## Why GrantLedger Exists
 
 Billing rarely stays simple for long.
 
@@ -74,7 +80,7 @@ GrantLedger exists to model that reality directly. The goal is not to showcase a
 - auditable when something goes wrong;
 - maintainable as the product and team grow.
 
-## Project Objective
+## Design Goals
 
 GrantLedger aims to give product and engineering teams confidence that billing behaviour is:
 
@@ -83,18 +89,6 @@ GrantLedger aims to give product and engineering teams confidence that billing b
 - resilient under retries and concurrency;
 - understandable under operational stress;
 - evolvable without losing architectural coherence.
-
-## At a Glance
-
-> Current state on `main`: architecture hardening baseline is complete through `ARCH-028`, with modular API runtime wiring, direct boundary coverage for bootstrap/domain/contracts, and an executable runtime baseline for both the API and worker.
-
-- domain rules remain pure and deterministic;
-- application use cases orchestrate idempotency, retries, replay, and audit flow;
-- API and worker layers adapt transport concerns without leaking business logic;
-- API and worker now have minimal executable runtime entrypoints for production-like local validation;
-- contracts are schema-first at the boundaries;
-- Postgres-backed durable paths are validated separately through dedicated integration checks;
-- architecture changes are tracked through ADRs and `ARCH-*` delivery streams.
 
 ## What Is Implemented Today
 
