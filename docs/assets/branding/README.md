@@ -21,7 +21,7 @@ Examples:
 - `grantledger-hero-shield-change-safe-billing-dark.png`
 - `grantledger-lockup-shield-primary-dark.png`
 - `grantledger-mark-block-3d-emerald-dark.png`
-- `grantledger-wordmark-primary-light.png`
+- `grantledger-wordmark-shield-primary-light.png`
 
 ### Asset types
 
@@ -56,7 +56,7 @@ Examples:
 - `approved/grantledger-lockup-shield-primary-dark.png`
 - `approved/grantledger-mark-shield-primary-dark.png`
 - `approved/grantledger-mark-shield-primary-light.png`
-- `approved/grantledger-wordmark-primary-light.png`
+- `approved/grantledger-wordmark-shield-primary-light.png`
 
 ## Current Concept Assets
 
