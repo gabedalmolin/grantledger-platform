@@ -1,13 +1,14 @@
 # Branding Assets
 
-This directory stores visual assets used by the repository documentation and future brand explorations.
+This directory stores visual assets used by the repository documentation and curated brand explorations.
 
 ## Structure
 
 - `approved/`
-  - assets that are currently referenced by project-facing documentation such as the root README
+  - assets that are intentionally used by project-facing documentation such as the root README
+  - the current approved direction uses the `shield` family
 - `concepts/`
-  - exploration assets that are intentionally kept out of the main README until a visual direction is selected
+  - alternate visual directions and exploratory material that should not be mixed into the root README without an explicit decision
 
 ## Naming Convention
 
@@ -17,9 +18,9 @@ Use lowercase kebab-case and this pattern whenever possible:
 
 Examples:
 
-- `grantledger-hero-change-safe-billing-dark.png`
-- `grantledger-mark-block-3d-emerald-dark.png`
+- `grantledger-hero-shield-change-safe-billing-dark.png`
 - `grantledger-lockup-shield-primary-dark.png`
+- `grantledger-mark-block-3d-emerald-dark.png`
 - `grantledger-wordmark-primary-light.png`
 
 ### Asset types
@@ -29,12 +30,18 @@ Examples:
 - `lockup`: symbol plus wordmark
 - `hero`: README or landing-style banner
 - `banner`: wider supporting marketing asset
+- `card`: framed lockup or promotional panel asset
 
 ### Families
 
-- `primary`: approved core identity used by the repository
+- `shield`: approved primary identity direction
 - `block-3d`: geometric 3D concept direction
-- `shield`: alternate shield-based concept direction
+
+### Variants
+
+- `primary`: default visual treatment for the family
+- descriptive copy variants such as `change-safe-billing`, `operational-trust`, or `reliable-billing` when the asset includes positioning text
+- stylistic variants such as `emerald` or `mono` when the asset changes material or colour treatment
 
 ### Themes
 
@@ -44,18 +51,25 @@ Examples:
 
 ## Current Approved Assets
 
-- `approved/grantledger-hero-change-safe-billing-dark.png`
+- `approved/grantledger-hero-shield-change-safe-billing-dark.png`
+- `approved/grantledger-hero-shield-operational-trust-dark.png`
+- `approved/grantledger-lockup-shield-primary-dark.png`
+- `approved/grantledger-mark-shield-primary-dark.png`
+- `approved/grantledger-mark-shield-primary-light.png`
+- `approved/grantledger-wordmark-primary-light.png`
 
-## Planned Concept Naming
+## Current Concept Assets
 
-When the remaining concept images are added, prefer names such as:
+### `concepts/block-3d`
 
-- `concepts/block-3d/grantledger-mark-block-3d-emerald-dark.png`
-- `concepts/block-3d/grantledger-lockup-block-3d-mono-dark.png`
-- `concepts/block-3d/grantledger-lockup-block-3d-emerald-dark.png`
-- `concepts/block-3d/grantledger-hero-block-3d-operational-trust-dark.png`
-- `concepts/shield/grantledger-hero-shield-operational-trust-dark.png`
-- `concepts/shield/grantledger-wordmark-primary-light.png`
-- `concepts/shield/grantledger-lockup-shield-primary-dark.png`
-- `concepts/shield/grantledger-mark-shield-primary-dark.png`
-- `concepts/shield/grantledger-hero-shield-change-safe-billing-dark.png`
+- `grantledger-banner-block-3d-reliable-billing-dark.png`
+- `grantledger-card-block-3d-lockup-emerald-dark.png`
+- `grantledger-hero-block-3d-operational-trust-dark.png`
+- `grantledger-lockup-block-3d-emerald-dark.png`
+- `grantledger-lockup-block-3d-mono-dark.png`
+- `grantledger-mark-block-3d-emerald-dark.png`
+- `grantledger-mark-block-3d-mono-dark.png`
+
+### `concepts/shield`
+
+- `grantledger-banner-shield-auditable-iconic-ultra-precise-dark.png`

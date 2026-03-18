@@ -8,7 +8,7 @@
 [![TypeScript Strict](https://img.shields.io/badge/TypeScript-strict-3178C6?style=flat-square&logo=typescript&logoColor=white)](./tsconfig.json)
 
 <p align="center">
-  <img alt="GrantLedger - Change-safe billing infrastructure" src="docs/assets/branding/approved/grantledger-hero-change-safe-billing-dark.png" width="920">
+  <img alt="GrantLedger - Change-safe billing infrastructure" src="docs/assets/branding/approved/grantledger-hero-shield-change-safe-billing-dark.png" width="920">
 </p>
 
 GrantLedger is a multi-tenant SaaS billing platform built to make change-safe billing workflows easier to reason about, validate, and evolve.
